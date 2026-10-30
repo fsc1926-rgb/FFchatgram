@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FFchatgram PRO</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon-192.svg">
+    <meta name="theme-color" content="#128C7E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { margin: 0; background-color: #eae6df; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .bg-chat { background-color: #efeae2; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; }
+        .message-in { background: #ffffff; border-radius: 0px 12px 12px 12px; }
+        .message-out { background: #d9fdd3; border-radius: 12px 0px 12px 12px; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        @keyframes spin { from {transform: rotate(0deg);} to {transform: rotate(360deg);} }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; color:#128C7E;">
+            <svg style="width:48px; height:48px; animation:spin 1s linear infinite; margin-bottom:16px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle style="opacity:0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path style="opacity:0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <h2 style="margin-bottom:8px; font-weight:bold;">Caricamento FFchatgram...</h2>
+            <p id="boot-status" style="color:#64748b; font-size:14px;">Inizializzazione database di sicurezza</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, doc, setDoc, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+        try {
+            const firebaseConfig = {
+  apiKey: "AIzaSyDR6F1nGbRhGdDQVXWETK0XlNxhU5AKxEU",
+  authDomain: "ffchatgram.firebaseapp.com",
+  projectId: "ffchatgram",
+  storageBucket: "ffchatgram.firebasestorage.app",
+  messagingSenderId: "6270167752",
+  appId: "1:6270167752:web:dbe57e9c6166f91fa953fd"
+};
+            const app = initializeApp(firebaseConfig);
+            window.auth = getAuth(app);
+            window.db = getFirestore(app);
+            window.fbApi = { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, doc, setDoc, getDocs, getDoc };
+            window.dispatchEvent(new Event("firebase-ready"));
+        } catch (err) {
+            const el = document.getElementById("boot-status");
+            if (el) { el.style.color = "#dc2626"; el.innerText = "Errore di Rete: " + err.message; }
+            console.error(err);
+        }
+    </script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [profile, setProfile] = useState(null);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                const unsubscribe = window.fbApi.onAuthStateChanged(window.auth, async (currentUser) => {
+                    if (currentUser) {
+                        const userRef = window.fbApi.doc(window.db, "users", currentUser.uid);
+                        const snap = await window.fbApi.getDoc(userRef);
+                        let userData = snap.exists() ? snap.data() : null;
+                        if (!userData) {
+                            userData = {
+                                uid: currentUser.uid,
+                                email: (currentUser.email || "").toLowerCase(),
+                                name: currentUser.displayName || (currentUser.email ? currentUser.email.split("@")[0] : "Utente")
+                            };
+                            await window.fbApi.setDoc(userRef, userData, { merge: true });
+                        }
+                        setProfile(userData);
+                        setUser(currentUser);
+
+                        const params = new URLSearchParams(window.location.search);
+                        const inviterUid = params.get("inviter");
+                        if (inviterUid && inviterUid !== currentUser.uid) {
+                            try {
+                                const inviterSnap = await window.fbApi.getDoc(window.fbApi.doc(window.db, "users", inviterUid));
+                                const inviterName = inviterSnap.exists() ? inviterSnap.data().name : (params.get("inviterName") || "Affiliato");
+                                const chatsRef = window.fbApi.collection(window.db, "chats");
+                                const q = window.fbApi.query(chatsRef, window.fbApi.where("members", "array-contains", currentUser.uid));
+                                const existingChats = await window.fbApi.getDocs(q);
+                                const alreadyExists = existingChats.docs.some(d => {
+                                    const data = d.data();
+                                    return data.type === "direct" && data.members && data.members.includes(inviterUid);
+                                });
+                                if (!alreadyExists) {
+                                    await window.fbApi.addDoc(chatsRef, {
+                                        type: "direct",
+                                        members: [currentUser.uid, inviterUid],
+                                        memberNames: { [currentUser.uid]: userData.name || userData.email, [inviterUid]: inviterName },
+                                        lastMessage: "Chat avviata tramite link di invito 👋",
+                                        updatedAt: window.fbApi.serverTimestamp()
+                                    });
+                                }
+                                window.history.replaceState({}, document.title, window.location.pathname);
+                            } catch (err) {
+                                console.error("Errore collegamento invito:", err);
+                            }
+                        }
+                    } else {
+                        setUser(null);
+                        setProfile(null);
+                    }
+                    setLoading(false);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            if (loading) {
+                return (
+                    <div className="h-screen flex flex-col items-center justify-center bg-[#f0f2f5] text-[#128C7E]">
+                        <div className="w-12 h-12 border-4 border-[#128C7E] border-t-transparent rounded-full animate-spin mb-4"></div>
+                        <p className="font-semibold">Autenticazione sicura...</p>
+                    </div>
+                );
+            }
+
+            return user ? <Dashboard user={user} profile={profile} /> : <AuthScreen />;
+        }
+
+        function AuthScreen() {
+            const params = new URLSearchParams(window.location.search);
+            const inviterName = params.get("inviterName");
+            const [isLogin, setIsLogin] = useState(!inviterName);
+            const [email, setEmail] = useState("");
+            const [password, setPassword] = useState("");
+            const [name, setName] = useState("");
+            const [error, setError] = useState("");
+            const [busy, setBusy] = useState(false);
+
+            const handleAuth = async (e) => {
+                e.preventDefault();
+                setError("");
+                setBusy(true);
+                try {
+                    if (isLogin) {
+                        await window.fbApi.signInWithEmailAndPassword(window.auth, email.trim(), password);
+                    } else {
+                        const cleanName = name.trim() || email.split("@")[0];
+                        const userCred = await window.fbApi.createUserWithEmailAndPassword(window.auth, email.trim(), password);
+                        await window.fbApi.updateProfile(userCred.user, { displayName: cleanName });
+                        await window.fbApi.setDoc(window.fbApi.doc(window.db, "users", userCred.user.uid), {
+                            uid: userCred.user.uid,
+                            email: email.trim().toLowerCase(),
+                            name: cleanName
+                        });
+                    }
+                } catch (err) {
+                    let msg = err.message;
+                    if (msg.includes("invalid-credential") || msg.includes("user-not-found") || msg.includes("wrong-password")) {
+                        msg = "Email o password non corretti. Se non hai un account, clicca su Registrati qui sotto.";
+                    } else if (msg.includes("email-already-in-use")) {
+                        msg = "Questa email è già registrata. Clicca su Accedi!";
+                    } else if (msg.includes("weak-password")) {
+                        msg = "La password deve contenere almeno 6 caratteri.";
+                    }
+                    setError(msg);
+                } finally {
+                    setBusy(false);
+                }
+            };
+
+            return (
+                <div className="h-screen flex flex-col items-center justify-center bg-[#f0f2f5] px-4">
+                    <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md border border-gray-100">
+                        <div className="w-16 h-16 bg-[#128C7E] rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-md">
+                            <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                        </div>
+                        <h2 className="text-2xl font-bold text-center text-gray-800 mb-1">FFchatgram PRO</h2>
+                        <p className="text-center text-gray-500 text-sm mb-6">
+                            {inviterName ? ("Sei stato invitato in chat da " + inviterName + "! Registrati per iniziare.") : "Messaggistica privata e sicura"}
+                        </p>
+                        <form onSubmit={handleAuth} className="space-y-4">
+                            {!isLogin && (
+                                <input required placeholder="Il tuo Nome e Cognome" value={name} onChange={e => setName(e.target.value)} className="w-full p-3.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#128C7E]" />
+                            )}
+                            <input required type="email" placeholder="La tua Email" value={email} onChange={e => setEmail(e.target.value)} className="w-full p-3.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#128C7E]" />
+                            <input required type="password" placeholder="Password (min. 6 caratteri)" value={password} onChange={e => setPassword(e.target.value)} className="w-full p-3.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#128C7E]" />
+                            {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm border border-red-200">{error}</div>}
+                            <button disabled={busy} type="submit" className="w-full bg-[#128C7E] text-white p-3.5 rounded-xl font-bold hover:bg-[#075E54] transition disabled:opacity-50">
+                                {busy ? "Attendere..." : (isLogin ? "Accedi alla Chat" : "Crea Account e Inizia")}
+                            </button>
+                        </form>
+                        <button type="button" className="mt-5 w-full text-center text-sm text-[#128C7E] font-semibold hover:underline" onClick={() => { setIsLogin(!isLogin); setError(""); }}>
+                            {isLogin ? "Non hai un account? Clicca qui per Registrarti" : "Hai già un account? Clicca qui per Accedere"}
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        function Dashboard({ user, profile }) {
+            const [chats, setChats] = useState([]);
+            const [allUsers, setAllUsers] = useState([]);
+            const [activeChat, setActiveChat] = useState(null);
+            const [modalType, setModalType] = useState(null);
+            const [inputEmail, setInputEmail] = useState("");
+            const [groupName, setGroupName] = useState("");
+            const [selectedMembers, setSelectedMembers] = useState([]);
+            const [toast, setToast] = useState("");
+
+            const showToast = (msg) => {
+                setToast(msg);
+                setTimeout(() => setToast(""), 3500);
+            };
+
+            useEffect(() => {
+                const chatsRef = window.fbApi.collection(window.db, "chats");
+                const q = window.fbApi.query(chatsRef, window.fbApi.where("members", "array-contains", user.uid));
+                const unsubChats = window.fbApi.onSnapshot(q, (snapshot) => {
+                    const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    list.sort((a, b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
+                    setChats(list);
+                });
+
+                const usersRef = window.fbApi.collection(window.db, "users");
+                const unsubUsers = window.fbApi.onSnapshot(usersRef, (snapshot) => {
+                    const list = snapshot.docs.map(doc => doc.data()).filter(u => u.uid !== user.uid);
+                    setAllUsers(list);
+                });
+
+                return () => { unsubChats(); unsubUsers(); };
+            }, [user.uid]);
+
+            const getChatDisplayName = (chat) => {
+                if (chat.type === "group") return chat.name || "Gruppo";
+                if (chat.memberNames) {
+                    const otherEntry = Object.entries(chat.memberNames).find(([uid]) => uid !== user.uid);
+                    if (otherEntry && otherEntry[1]) return otherEntry[1];
+                }
+                return "Chat Privata";
+            };
+
+            const startDirectChatWithUser = async (contact) => {
+                const existing = chats.find(c => c.type === "direct" && c.members && c.members.includes(contact.uid));
+                if (existing) {
+                    setActiveChat({ id: existing.id, name: getChatDisplayName(existing), type: existing.type });
+                    setModalType(null);
+                    return;
+                }
+                const myName = profile?.name || user.email;
+                const chatsRef = window.fbApi.collection(window.db, "chats");
+                const docRef = await window.fbApi.addDoc(chatsRef, {
+                    type: "direct",
+                    members: [user.uid, contact.uid],
+                    memberNames: { [user.uid]: myName, [contact.uid]: contact.name || contact.email },
+                    lastMessage: "Nuova chat creata",
+                    updatedAt: window.fbApi.serverTimestamp()
+                });
+                setModalType(null);
+                setInputEmail("");
+                setActiveChat({ id: docRef.id, name: contact.name || contact.email, type: "direct" });
+                showToast("Contatto aggiunto nella rubrica!");
+            };
+
+            const handleAddByEmail = async (e) => {
+                e.preventDefault();
+                const target = inputEmail.trim().toLowerCase();
+                if (!target) return;
+                const found = allUsers.find(u => u.email === target);
+                if (!found) {
+                    showToast("Utente non ancora registrato. Inviagli il tuo link di invito!");
+                    setModalType("invite");
+                    return;
+                }
+                await startDirectChatWithUser(found);
+            };
+
+            const handleCreateGroup = async (e) => {
+                e.preventDefault();
+                if (!groupName.trim()) return;
+                const members = [user.uid, ...selectedMembers];
+                const chatsRef = window.fbApi.collection(window.db, "chats");
+                const docRef = await window.fbApi.addDoc(chatsRef, {
+                    type: "group",
+                    name: groupName.trim(),
+                    members: members,
+                    lastMessage: "Gruppo creato",
+                    updatedAt: window.fbApi.serverTimestamp()
+                });
+                setModalType(null);
+                setGroupName("");
+                setSelectedMembers([]);
+                setActiveChat({ id: docRef.id, name: groupName.trim(), type: "group" });
+                showToast("Gruppo creato con successo!");
+            };
+
+            const toggleMemberSelection = (uid) => {
+                setSelectedMembers(prev => prev.includes(uid) ? prev.filter(id => id !== uid) : [...prev, uid]);
+            };
+
+            const getInviteLink = () => {
+                const baseUrl = window.location.origin + window.location.pathname;
+                const myName = encodeURIComponent(profile?.name || user.email.split("@")[0]);
+                return baseUrl + "?inviter=" + user.uid + "&inviterName=" + myName;
+            };
+
+            const copyInvite = () => {
+                const link = getInviteLink();
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(link);
+                }
+                showToast("Link copiato negli appunti! Invialo su WhatsApp.");
+            };
+
+            return (
+                <div className="flex h-screen w-full bg-white overflow-hidden relative">
+                    {toast && (
+                        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white px-5 py-2.5 rounded-full shadow-lg text-sm font-medium">
+                            {toast}
+                        </div>
+                    )}
+
+                    <div className={"w-full md:w-[380px] bg-white border-r flex flex-col " + (activeChat ? "hidden md:flex" : "flex")}>
+                        <div className="bg-[#f0f2f5] p-3.5 flex justify-between items-center border-b">
+                            <div className="flex items-center gap-2.5 overflow-hidden">
+                                <div className="w-10 h-10 rounded-full bg-[#128C7E] text-white flex items-center justify-center font-bold uppercase shrink-0">
+                                    {(profile?.name || user.email)[0]}
+                                </div>
+                                <div className="overflow-hidden">
+                                    <div className="font-bold text-gray-800 text-sm truncate">{profile?.name || "Amministratore"}</div>
+                                    <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <button onClick={() => setModalType("invite")} className="p-2 text-[#128C7E] hover:bg-gray-200 rounded-full" title="Invita Affiliato tramite Link">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                                </button>
+                                <button onClick={() => setModalType("contact")} className="p-2 text-gray-600 hover:bg-gray-200 rounded-full" title="Aggiungi Contatto">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                                </button>
+                                <button onClick={() => setModalType("group")} className="p-2 text-gray-600 hover:bg-gray-200 rounded-full" title="Crea Gruppo">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                </button>
+                                <button onClick={() => window.fbApi.signOut(window.auth)} className="p-2 text-red-500 hover:bg-red-50 rounded-full" title="Esci">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="p-2.5 bg-teal-50/60 border-b flex gap-2">
+                            <button onClick={() => setModalType("invite")} className="flex-1 bg-[#128C7E] text-white text-xs font-semibold py-2 px-3 rounded-lg hover:bg-[#075E54] transition">
+                                🔗 Invita Affiliato
+                            </button>
+                            <button onClick={() => setModalType("contact")} className="flex-1 bg-white text-[#128C7E] border border-[#128C7E] text-xs font-semibold py-2 px-3 rounded-lg hover:bg-teal-50 transition">
+                                ➕ Nuova Chat
+                            </button>
+                            <button onClick={() => setModalType("group")} className="flex-1 bg-white text-gray-700 border border-gray-300 text-xs font-semibold py-2 px-3 rounded-lg hover:bg-gray-100 transition">
+                                👥 Gruppo
+                            </button>
+                        </div>
+
+                        <div className="overflow-y-auto flex-1">
+                            {chats.map(chat => {
+                                const chatName = getChatDisplayName(chat);
+                                const isSelected = activeChat && activeChat.id === chat.id;
+                                return (
+                                    <div key={chat.id} onClick={() => setActiveChat({ id: chat.id, name: chatName, type: chat.type })} className={"p-3.5 border-b hover:bg-gray-50 cursor-pointer flex items-center gap-3 transition " + (isSelected ? "bg-teal-50/70" : "")}>
+                                        <div className={"w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg uppercase shrink-0 " + (chat.type === "group" ? "bg-indigo-600" : "bg-[#128C7E]")}>
+                                            {chat.type === "group" ? "👥" : (chatName ? chatName[0] : "#")}
+                                        </div>
+                                        <div className="flex-1 overflow-hidden">
+                                            <div className="flex justify-between items-center">
+                                                <span className="font-semibold text-gray-800 truncate">{chatName}</span>
+                                                {chat.type === "group" && <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">Gruppo</span>}
+                                            </div>
+                                            <div className="text-sm text-gray-500 truncate mt-0.5">{chat.lastMessage || "Tocca per scrivere..."}</div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            {chats.length === 0 && (
+                                <div className="p-8 text-center text-gray-500 space-y-3">
+                                    <p className="font-medium text-gray-700">Nessuna conversazione attiva</p>
+                                    <p className="text-xs text-gray-400">Clicca su "Invita Affiliato" per mandare il tuo link personale, oppure "Nuova Chat".</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className={"flex-1 flex-col " + (!activeChat ? "hidden md:flex" : "flex")}>
+                        {activeChat ? (
+                            <ChatRoom chat={activeChat} user={user} profile={profile} onBack={() => setActiveChat(null)} />
+                        ) : (
+                            <div className="flex-1 flex flex-col items-center justify-center bg-[#f0f2f5] p-6 text-center">
+                                <div className="w-24 h-24 rounded-full bg-teal-100 text-[#128C7E] flex items-center justify-center mb-4 shadow-inner">
+                                    <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                                </div>
+                                <h2 className="text-2xl text-gray-700 font-semibold">FFchatgram PRO</h2>
+                                <p className="text-gray-500 mt-2 max-w-md text-sm">Seleziona una chat a sinistra oppure clicca su <b>Invita Affiliato</b> per condividere il tuo link diretto.</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {modalType === "invite" && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+                                <h3 className="text-lg font-bold text-gray-800 mb-2">🔗 Invita un Affiliato</h3>
+                                <p className="text-sm text-gray-600 mb-4">Invia questo link al tuo affiliato. Non appena aprirà il link e creerà il suo account, <b>la vostra chat privata si creerà in automatico</b> nella tua lista!</p>
+                                <div className="bg-gray-100 p-3 rounded-xl text-xs font-mono break-all text-gray-700 border mb-4">
+                                    {getInviteLink()}
+                                </div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setModalType(null)} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-gray-600 font-semibold">Chiudi</button>
+                                    <button onClick={copyInvite} className="flex-1 py-2.5 bg-[#128C7E] text-white rounded-xl font-semibold hover:bg-[#075E54]">Copia Link</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {modalType === "contact" && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+                                <h3 className="text-lg font-bold text-gray-800 mb-2">➕ Avvia Nuova Chat</h3>
+                                <form onSubmit={handleAddByEmail} className="space-y-3 mb-4">
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase">Cerca per Email</label>
+                                    <div className="flex gap-2">
+                                        <input type="email" required placeholder="email@affiliato.it" value={inputEmail} onChange={e => setInputEmail(e.target.value)} className="flex-1 p-2.5 border rounded-xl text-sm focus:outline-none focus:border-[#128C7E]" />
+                                        <button type="submit" className="bg-[#128C7E] text-white px-4 rounded-xl text-sm font-semibold">Aggiungi</button>
+                                    </div>
+                                </form>
+                                <div className="border-t pt-3">
+                                    <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Utenti registrati ({allUsers.length})</div>
+                                    <div className="max-h-48 overflow-y-auto space-y-1">
+                                        {allUsers.map(u => (
+                                            <div key={u.uid} onClick={() => startDirectChatWithUser(u)} className="p-2 hover:bg-teal-50 rounded-lg cursor-pointer flex justify-between items-center">
+                                                <div>
+                                                    <div className="text-sm font-semibold text-gray-800">{u.name}</div>
+                                                    <div className="text-xs text-gray-500">{u.email}</div>
+                                                </div>
+                                                <span className="text-xs bg-[#128C7E] text-white px-2.5 py-1 rounded-lg">Chatta</span>
+                                            </div>
+                                        ))}
+                                        {allUsers.length === 0 && <div className="text-xs text-gray-400 py-3 text-center">Nessun altro utente registrato. Usa il link di invito!</div>}
+                                    </div>
+                                </div>
+                                <button onClick={() => setModalType(null)} className="mt-4 w-full py-2.5 border border-gray-300 rounded-xl text-gray-600 font-semibold text-sm">Chiudi</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {modalType === "group" && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+                                <h3 className="text-lg font-bold text-gray-800 mb-3">👥 Crea Nuovo Gruppo</h3>
+                                <form onSubmit={handleCreateGroup} className="space-y-4">
+                                    <input required placeholder="Nome del Gruppo" value={groupName} onChange={e => setGroupName(e.target.value)} className="w-full p-3 border rounded-xl text-sm focus:outline-none focus:border-[#128C7E]" />
+                                    <div>
+                                        <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Seleziona Partecipanti ({selectedMembers.length})</div>
+                                        <div className="max-h-44 overflow-y-auto border rounded-xl p-2 space-y-1">
+                                            {allUsers.map(u => (
+                                                <label key={u.uid} className="flex items-center gap-2.5 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                                                    <input type="checkbox" checked={selectedMembers.includes(u.uid)} onChange={() => toggleMemberSelection(u.uid)} className="w-4 h-4 accent-[#128C7E]" />
+                                                    <span className="text-sm font-medium text-gray-800">{u.name} <span className="text-xs text-gray-400">({u.email})</span></span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button type="button" onClick={() => setModalType(null)} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-gray-600 font-semibold">Annulla</button>
+                                        <button type="submit" className="flex-1 py-2.5 bg-[#128C7E] text-white rounded-xl font-semibold hover:bg-[#075E54]">Crea Gruppo</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function ChatRoom({ chat, user, profile, onBack }) {
+            const [messages, setMessages] = useState([]);
+            const [newMessage, setNewMessage] = useState("");
+            const scrollRef = useRef();
+
+            useEffect(() => {
+                const messagesRef = window.fbApi.collection(window.db, "chats", chat.id, "messages");
+                const q = window.fbApi.query(messagesRef, window.fbApi.orderBy("timestamp", "asc"));
+                const unsubscribe = window.fbApi.onSnapshot(q, (snapshot) => {
+                    setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
+                });
+                return () => unsubscribe();
+            }, [chat.id]);
+
+            const sendMessage = async (e) => {
+                e.preventDefault();
+                if (!newMessage.trim()) return;
+                const text = newMessage.trim();
+                setNewMessage("");
+                const senderLabel = profile?.name || user.email;
+                const messagesRef = window.fbApi.collection(window.db, "chats", chat.id, "messages");
+                await window.fbApi.addDoc(messagesRef, {
+                    text: text,
+                    senderId: user.uid,
+                    senderName: senderLabel,
+                    timestamp: window.fbApi.serverTimestamp()
+                });
+                const chatRef = window.fbApi.doc(window.db, "chats", chat.id);
+                await window.fbApi.setDoc(chatRef, {
+                    lastMessage: text,
+                    updatedAt: window.fbApi.serverTimestamp()
+                }, { merge: true });
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-chat w-full">
+                    <div className="bg-[#f0f2f5] p-3 flex items-center gap-3 border-b border-gray-200 shadow-sm">
+                        <button onClick={onBack} className="md:hidden text-gray-600 p-1.5 hover:bg-gray-200 rounded-full">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+                        </button>
+                        <div className={"w-10 h-10 rounded-full flex items-center justify-center text-white font-bold uppercase " + (chat.type === "group" ? "bg-indigo-600" : "bg-[#128C7E]")}>
+                            {chat.type === "group" ? "👥" : (chat.name ? chat.name[0] : "#")}
+                        </div>
+                        <div>
+                            <div className="font-semibold text-gray-800 leading-tight">{chat.name}</div>
+                            <div className="text-xs text-[#128C7E] font-medium">Online • Crittografato</div>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        {messages.map(msg => {
+                            const isMe = msg.senderId === user.uid;
+                            return (
+                                <div key={msg.id} className={"flex " + (isMe ? "justify-end" : "justify-start")}>
+                                    <div className={"max-w-[78%] px-3.5 py-2 shadow-sm relative " + (isMe ? "message-out" : "message-in")}>
+                                        {!isMe && <div className="text-xs text-[#128C7E] font-bold mb-0.5">{msg.senderName}</div>}
+                                        <div className="text-gray-800 text-[15px] leading-snug break-words">{msg.text}</div>
+                                        <div className="text-[10px] text-gray-500 text-right mt-1 flex items-center justify-end gap-1">
+                                            <span>{msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], {hour: "2-digit", minute:"2-digit"}) : "..."}</span>
+                                            {isMe && <span className="text-blue-500 font-bold">✓✓</span>}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        <div ref={scrollRef}></div>
+                    </div>
+
+                    <div className="bg-[#f0f2f5] p-3">
+                        <form onSubmit={sendMessage} className="flex gap-2 bg-white rounded-full p-1.5 pl-4 shadow-sm items-center border border-gray-200">
+                            <input
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                placeholder="Scrivi un messaggio..."
+                                className="flex-1 focus:outline-none bg-transparent text-sm"
+                            />
+                            <button type="submit" className="bg-[#128C7E] text-white p-2.5 rounded-full hover:bg-[#075E54] transition-colors">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        function bootApp() {
+            ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+        }
+
+        if (window.auth && window.db) {
+            bootApp();
+        } else {
+            window.addEventListener("firebase-ready", bootApp);
+        }
+    </script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("./sw.js").catch(err => console.log("SW err", err));
+            });
+        }
+    </script>
+</body>
+</html>
