@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FFchatgram</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#128C7E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, sendPasswordResetEmail, updatePassword } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, doc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+        try {
+            const firebaseConfig = {
+  apiKey: "AIzaSyDR6F1nGbRhGdDQVXWETK0XlNxhU5AKxEU",
+  authDomain: "ffchatgram.firebaseapp.com",
+  projectId: "ffchatgram",
+  storageBucket: "ffchatgram.firebasestorage.app",
+  messagingSenderId: "6270167752",
+  appId: "1:6270167752:web:dbe57e9c6166f91fa953fd"
+};
+            const app = initializeApp(firebaseConfig);
+            window.auth = getAuth(app);
+            window.db = getFirestore(app);
+            window.fbApi = { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, sendPasswordResetEmail, updatePassword, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, doc, setDoc, getDocs };
+            window.dispatchEvent(new Event("firebase-ready"));
+        } catch(err) {
+            console.error("Firebase Auth Error", err);
+        }
+    </script>
+    <style>
+        body { margin: 0; background-color: #eae6df; overflow: hidden; }
+        .bg-chat { background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div style="height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;color:#888;">
+            Avvio in corso...
+        </div>
+    </div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function App() {
+            const [ready, setReady] = useState(false);
+            const [user, setUser] = useState(null);
+
+            useEffect(() => {
+                const checkReady = () => setReady(true);
+                if (window.fbApi) setReady(true);
+                window.addEventListener("firebase-ready", checkReady);
+                return () => window.removeEventListener("firebase-ready", checkReady);
+            }, []);
+
+            useEffect(() => {
+                if (!ready) return;
+                const unsub = window.fbApi.onAuthStateChanged(window.auth, u => setUser(u));
+                return () => unsub();
+            }, [ready]);
+
+            if (!ready) return <div className="h-screen flex items-center justify-center text-gray-500">Inizializzazione database...</div>;
+            return user ? <Dashboard user={user} /> : <AuthScreen />;
+        }
+
+        function AuthScreen() {
+            const [isLogin, setIsLogin] = useState(true);
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [name, setName] = useState('');
+            const [error, setError] = useState('');
+            const [busy, setBusy] = useState(false);
+
+            const handleAuth = async (e) => {
+                e.preventDefault();
+                setError('');
+                setBusy(true);
+                try {
+                    if (isLogin) {
+                        await window.fbApi.signInWithEmailAndPassword(window.auth, email.trim(), password);
+                    } else {
+                        const res = await window.fbApi.createUserWithEmailAndPassword(window.auth, email.trim(), password);
+                        await window.fbApi.updateProfile(res.user, { displayName: name.trim() });
+                        await window.fbApi.setDoc(window.fbApi.doc(window.db, "users", res.user.uid), {
+                            uid: res.user.uid,
+                            email: email.trim().toLowerCase(),
+                            name: name.trim()
+                        });
+                    }
+                } catch(err) {
+                    setError("Errore: controlla i tuoi dati.");
+                }
+                setBusy(false);
+            };
+
+            const handleReset = async () => {
+                if (!email.trim()) return setError("Inserisci la tua email qui sopra.");
+                try {
+                    await window.fbApi.sendPasswordResetEmail(window.auth, email.trim());
+                    setError("Email di reset inviata!");
+                } catch(err) { setError("Errore nel reset."); }
+            };
+
+            return (
+                <div className="h-screen flex items-center justify-center bg-[#f0f2f5] px-4">
+                    <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
+                        <h2 className="text-3xl font-bold text-center text-[#128C7E] mb-6">FFchatgram</h2>
+                        <form onSubmit={handleAuth} className="space-y-4">
+                            {!isLogin && <input required placeholder="Il tuo Nome" value={name} onChange={e=>setName(e.target.value)} className="w-full p-3 border rounded-xl focus:border-[#128C7E] outline-none" />}
+                            <input required type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-3 border rounded-xl focus:border-[#128C7E] outline-none" />
+                            <input required type="password" placeholder="Password (min 6 caratteri)" value={password} onChange={e=>setPassword(e.target.value)} className="w-full p-3 border rounded-xl focus:border-[#128C7E] outline-none" />
+                            {error && <div className="text-red-500 text-sm font-semibold">{error}</div>}
+                            <button disabled={busy} type="submit" className="w-full bg-[#128C7E] text-white p-3.5 rounded-xl font-bold hover:bg-[#075E54]">{isLogin ? "Accedi" : "Crea Account"}</button>
+                        </form>
+                        {isLogin && <button onClick={handleReset} type="button" className="w-full mt-4 text-xs text-gray-500 hover:underline">Hai dimenticato la password?</button>}
+                        <button onClick={()=>{setIsLogin(!isLogin); setError("");}} type="button" className="w-full mt-4 text-sm text-[#128C7E] font-semibold hover:underline">{isLogin ? "Nuovo utente? Registrati qui" : "Hai un account? Accedi"}</button>
+                    </div>
+                </div>
+            );
+        }
+
+        function Dashboard({ user }) {
+            const [chats, setChats] = useState([]);
+            const [activeChat, setActiveChat] = useState(null);
+            const [modal, setModal] = useState(null);
+            const [newPass, setNewPass] = useState("");
+            const [contactEmail, setContactEmail] = useState("");
+
+            useEffect(() => {
+                const q = window.fbApi.query(window.fbApi.collection(window.db, "chats"), window.fbApi.where("members", "array-contains", user.uid));
+                return window.fbApi.onSnapshot(q, snap => {
+                    const c = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    c.sort((a,b) => (b.updatedAt?.toMillis()||0) - (a.updatedAt?.toMillis()||0));
+                    setChats(c);
+                });
+            }, [user.uid]);
+
+            const copyInvite = () => {
+                const url = window.location.origin + window.location.pathname;
+                navigator.clipboard.writeText("Entra in FFchatgram qui: " + url);
+                alert("Link d'invito copiato! Invia su WhatsApp.");
+            };
+
+            const addContact = async (e) => {
+                e.preventDefault();
+                const q = window.fbApi.query(window.fbApi.collection(window.db, "users"), window.fbApi.where("email", "==", contactEmail.trim().toLowerCase()));
+                const snap = await window.fbApi.getDocs(q);
+                if (snap.empty) return alert("Nessun utente trovato con questa email.");
+                
+                const contact = snap.docs[0].data();
+                if (contact.uid === user.uid) return alert("Non puoi aggiungere te stesso.");
+
+                await window.fbApi.addDoc(window.fbApi.collection(window.db, "chats"), {
+                    type: "direct",
+                    members: [user.uid, contact.uid],
+                    memberNames: { [user.uid]: user.displayName||"Utente", [contact.uid]: contact.name||"Affiliato" },
+                    updatedAt: window.fbApi.serverTimestamp()
+                });
+                setModal(null);
+            };
+
+            const updatePass = async (e) => {
+                e.preventDefault();
+                try {
+                    await window.fbApi.updatePassword(user, newPass);
+                    alert("Password aggiornata con successo!");
+                    setModal(null);
+                } catch(err) {
+                    alert("Errore (potrebbe essere necessario fare di nuovo login): " + err.message);
+                }
+            };
+
+            return (
+                <div className="flex h-screen bg-white">
+                    {/* Lista Chat Laterale */}
+                    <div className={"w-full md:w-1/3 bg-gray-50 border-r flex flex-col " + (activeChat ? "hidden md:flex" : "flex")}>
+                        <div className="bg-[#f0f2f5] p-4 flex justify-between items-center border-b">
+                            <div>
+                                <div className="font-bold text-gray-800 text-sm truncate">{user.displayName || "Il Mio Profilo"}</div>
+                                <div className="text-xs text-[#128C7E] font-bold">Online</div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={copyInvite} title="Invita" className="p-2 bg-gray-200 rounded-full text-lg">🔗</button>
+                                <button onClick={()=>setModal('contact')} title="Aggiungi Contatto" className="p-2 bg-gray-200 rounded-full text-lg">➕</button>
+                                <button onClick={()=>setModal('settings')} title="Impostazioni" className="p-2 bg-gray-200 rounded-full text-lg">⚙️</button>
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto">
+                            {chats.length === 0 && <div className="p-6 text-center text-sm text-gray-500">Nessuna chat.<br/>Clicca 🔗 per invitare qualcuno o ➕ per aggiungere un'email.</div>}
+                            {chats.map(c => {
+                                const name = c.type === 'group' ? c.name : Object.values(c.memberNames||{}).find(n => n !== (user.displayName||"Utente")) || "Chat";
+                                return (
+                                    <div key={c.id} onClick={()=>setActiveChat({id: c.id, name})} className="p-4 border-b hover:bg-gray-100 cursor-pointer flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-full bg-[#128C7E] text-white flex items-center justify-center font-bold text-xl uppercase">{name[0]||'#'}</div>
+                                        <div className="overflow-hidden flex-1">
+                                            <div className="font-semibold text-gray-800 truncate">{name}</div>
+                                            <div className="text-sm text-gray-500 truncate">{c.lastMessage||"Nessun messaggio"}</div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Area Messaggi Principale */}
+                    <div className={"flex-1 flex flex-col bg-[#f0f2f5] " + (!activeChat ? "hidden md:flex" : "flex")}>
+                        {activeChat ? <ChatRoom chat={activeChat} user={user} onBack={()=>setActiveChat(null)} /> : (
+                            <div className="flex-1 flex items-center justify-center text-gray-400">
+                                Seleziona una chat dalla lista per iniziare
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Modali Impostazioni */}
+                    {modal === 'contact' && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white p-6 rounded-2xl w-full max-w-sm">
+                                <h3 className="font-bold mb-4 text-gray-800">Aggiungi Contatto</h3>
+                                <form onSubmit={addContact}>
+                                    <input required type="email" placeholder="Email esatta dell'affiliato" value={contactEmail} onChange={e=>setContactEmail(e.target.value)} className="w-full p-3 border rounded-xl mb-4 outline-none" />
+                                    <div className="flex gap-2">
+                                        <button type="button" onClick={()=>setModal(null)} className="flex-1 p-3 bg-gray-200 rounded-xl font-bold">Annulla</button>
+                                        <button type="submit" className="flex-1 p-3 bg-[#128C7E] text-white rounded-xl font-bold">Aggiungi</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                    {modal === 'settings' && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white p-6 rounded-2xl w-full max-w-sm">
+                                <h3 className="font-bold mb-4 text-gray-800">Impostazioni</h3>
+                                <form onSubmit={updatePass} className="mb-4 border-b pb-4">
+                                    <input required minLength="6" type="password" placeholder="Scrivi la Nuova Password" value={newPass} onChange={e=>setNewPass(e.target.value)} className="w-full p-3 border rounded-xl mb-3 outline-none" />
+                                    <button type="submit" className="w-full p-3 bg-[#128C7E] text-white rounded-xl font-bold">Aggiorna Password</button>
+                                </form>
+                                <div className="flex gap-2">
+                                    <button onClick={()=>setModal(null)} className="flex-1 p-3 bg-gray-200 rounded-xl font-bold">Chiudi</button>
+                                    <button onClick={()=>window.fbApi.signOut(window.auth)} className="flex-1 p-3 bg-red-100 text-red-600 rounded-xl font-bold">Esci da App</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function ChatRoom({ chat, user, onBack }) {
+            const [msgs, setMsgs] = useState([]);
+            const [text, setText] = useState("");
+            const bottom = useRef();
+
+            useEffect(() => {
+                const q = window.fbApi.query(window.fbApi.collection(window.db, "chats", chat.id, "messages"), window.fbApi.orderBy("timestamp", "asc"));
+                return window.fbApi.onSnapshot(q, snap => {
+                    setMsgs(snap.docs.map(d => ({id: d.id, ...d.data()})));
+                    setTimeout(() => bottom.current?.scrollIntoView({behavior: "smooth"}), 150);
+                });
+            }, [chat.id]);
+
+            const send = async (e) => {
+                e.preventDefault();
+                if (!text.trim()) return;
+                const msg = text.trim();
+                setText("");
+                await window.fbApi.addDoc(window.fbApi.collection(window.db, "chats", chat.id, "messages"), {
+                    text: msg,
+                    senderId: user.uid,
+                    senderName: user.displayName || "Utente",
+                    timestamp: window.fbApi.serverTimestamp()
+                });
+                await window.fbApi.setDoc(window.fbApi.doc(window.db, "chats", chat.id), {
+                    lastMessage: msg, updatedAt: window.fbApi.serverTimestamp()
+                }, {merge: true});
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-chat">
+                    <div className="bg-[#f0f2f5] p-3 flex items-center gap-3 border-b">
+                        <button onClick={onBack} className="md:hidden p-2 text-gray-600 font-bold text-xl">←</button>
+                        <div className="w-10 h-10 bg-[#128C7E] rounded-full text-white flex items-center justify-center font-bold uppercase">{chat.name[0]}</div>
+                        <div className="font-bold text-gray-800">{chat.name}</div>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        {msgs.map(m => {
+                            const isMe = m.senderId === user.uid;
+                            return (
+                                <div key={m.id} className={"flex " + (isMe ? "justify-end" : "justify-start")}>
+                                    <div className={"max-w-[75%] px-4 py-2 shadow-sm rounded-xl " + (isMe ? "bg-[#dcf8c6] rounded-tr-none" : "bg-white rounded-tl-none")}>
+                                        {!isMe && <div className="text-xs text-[#128C7E] font-bold mb-1">{m.senderName}</div>}
+                                        <div className="text-gray-800 text-[15px]">{m.text}</div>
+                                        <div className="text-[10px] text-gray-400 text-right mt-1">
+                                            {m.timestamp?.toDate().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) || ''}
+                                            {isMe && <span className="ml-1 text-blue-500">✓✓</span>}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        <div ref={bottom}></div>
+                    </div>
+                    
+                    <form onSubmit={send} className="bg-[#f0f2f5] p-3 flex gap-2">
+                        <input value={text} onChange={e=>setText(e.target.value)} placeholder="Scrivi un messaggio..." className="flex-1 px-4 py-3 rounded-full border-none focus:outline-none shadow-sm" />
+                        <button type="submit" className="bg-[#128C7E] text-white w-12 h-12 rounded-full flex items-center justify-center font-bold shadow-sm transition hover:bg-[#075E54]">✈</button>
+                    </form>
+                </div>
+            );
+        }
+    </script>
+</body>
+</html>

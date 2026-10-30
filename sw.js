@@ -1,0 +1,2 @@
+self.addEventListener('install', e => e.waitUntil(caches.open('ffchat-v1').then(c => c.addAll(['./index.html', './manifest.json', './icon-192.svg']))));
+self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(res => res || fetch(e.request))));
