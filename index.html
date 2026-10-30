@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FFchatgram</title>
+  
+  <!-- PWA Meta Tags (Rende l'app installabile e a schermo intero) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#8ca3b3">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FFchatgram">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Nasconde la scrollbar mantenendo la funzionalità */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+  </style>
+</head>
+<body class="bg-[#F4F4F5] text-slate-800 font-sans h-screen overflow-hidden">
+
+  <!-- ================= SCREEN 1: SETUP DATABASE ================= -->
+  <div id="screen-setup" class="h-full flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white p-8 rounded-3xl shadow-sm max-w-lg w-full border border-slate-200">
+      <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+      </div>
+      <h2 class="text-2xl font-bold text-center text-slate-800 mb-2">Database Richiesto</h2>
+      <p class="text-slate-500 text-sm text-center mb-6">Per chattare a distanza, hai bisogno di un server dove far transitare i messaggi. Crealo gratis su Firebase in 2 minuti.</p>
+      
+      <div class="space-y-3 text-sm text-slate-600 mb-6 bg-slate-50 p-4 rounded-xl">
+        <p>1. Vai su <a href="https://console.firebase.google.com/" target="_blank" class="text-blue-500 font-bold underline">Firebase</a> e crea un progetto.</p>
+        <p>2. Vai su <b>Build > Firestore Database</b> e crea un database in "Test Mode".</p>
+        <p>3. Vai su <b>Build > Authentication</b> e attiva l'accesso "Anonimo".</p>
+        <p>4. Vai nelle <b>Impostazioni (Rotella) > Generali</b>, aggiungi un'app Web (</>) e copia il blocco di codice <code>firebaseConfig</code>.</p>
+      </div>
+
+      <form id="setup-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Incolla qui il tuo firebaseConfig</label>
+          <textarea id="config-input" rows="6" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono text-xs" placeholder="const firebaseConfig = {
+  apiKey: '...',
+  authDomain: '...',
+  ...
+};" required>
