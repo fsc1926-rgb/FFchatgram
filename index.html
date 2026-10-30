@@ -50,8 +50,16 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>FFchatgram</title>
+  
+  <!-- PWA Meta Tags (Rende l'app installabile e a schermo intero) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#8ca3b3">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FFchatgram">
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* Nasconde la scrollbar mantenendo la funzionalità */
@@ -329,21 +337,85 @@
     });
 
     document.getElementById('leave-btn').addEventListener('click', () => showScreen('screen-join'));
+
+    // REGISTRAZIONE SERVICE WORKER (PWA Offline & Installazione)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(registration => {
+          console.log('PWA ServiceWorker registrato con successo.');
+        }).catch(err => {
+          console.log('PWA ServiceWorker non supportato da file locale (Serve HTTPS).');
+        });
+      });
+    }
   </script>
 </body>
 </html>
 </textarea>
 
+<textarea id="file-manifest" style="display:none;">
+{
+  "name": "FFchatgram - Private Chat",
+  "short_name": "FFchatgram",
+  "description": "App di messaggistica privata online stile Telegram",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F4F4F5",
+  "theme_color": "#8ca3b3",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+</textarea>
+
+<textarea id="file-sw" style="display:none;">
+const CACHE_NAME = 'ffchatgram-v1';
+const urlsToCache = [
+  './index.html',
+  './manifest.json'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+  );
+});
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request);
+    })
+  );
+});
+</textarea>
+
 <textarea id="file-leggimi" style="display:none;">
 CIAO!
 
-Per avviare la tua chat (FFchatgram):
-1. Fai doppio click sul file "FFchatgram.html" per aprirlo nel tuo browser (Chrome, Safari, Edge, ecc.).
-2. Non hai bisogno di installare nient'altro!
+L'app adesso è una PWA (Progressive Web App) completa e installabile su Smartphone!
 
-La prima volta che aprirai l'app, una schermata ti guiderà su come collegare il tuo database gratuito Firebase (ci vogliono 2 minuti, è facilissimo e serve a far viaggiare i messaggi su internet in tempo reale).
+Per usarla per test:
+1. Fai doppio click sul file "index.html" per aprirlo nel tuo browser.
+2. Per chattare online dovrai configurare le tue chiavi Firebase gratuitamente (seguendo le istruzioni a schermo).
 
-Una volta configurato, potrai condividere il link in alto con i tuoi amici e chattare in modo completamente privato!
+COME FARLA INSTALLARE SU SMARTPHONE (iPhone/Android) COME APP VERA E PROPRIA:
+Per permettere ai tuoi amici di avere l'app "FFchatgram" sulla schermata Home del loro telefono (con l'icona e senza le barre di Chrome/Safari), DEVI caricare questi file online in HTTPS.
+
+Carica gratuitamente i file (index.html, manifest.json, sw.js) su una piattaforma di hosting web (come Netlify, Vercel, o GitHub Pages). 
+Quando i tuoi amici apriranno il link fornito dall'hosting tramite telefono, il browser gli chiederà "Vuoi installare l'app?".
 </textarea>
 
   <!-- Script per creare e scaricare lo ZIP -->
@@ -355,13 +427,15 @@ Una volta configurato, potrai condividere il link in alto con i tuoi amici e cha
         return document.getElementById(id).value.trim();
       }
 
-      // Genero solo due file semplicissimi! Nessuna cartella complessa.
-      zip.file("FFchatgram.html", getFileContent('file-html'));
+      // Ora genero i file PWA! Rinominato in index.html, aggiunti manifest e sw
+      zip.file("index.html", getFileContent('file-html'));
+      zip.file("manifest.json", getFileContent('file-manifest'));
+      zip.file("sw.js", getFileContent('file-sw'));
       zip.file("LEGGIMI.txt", getFileContent('file-leggimi'));
 
       // Genero il file zip e faccio partire il download
       zip.generateAsync({type:"blob"}).then(function(content) {
-        saveAs(content, "FFchatgram.zip");
+        saveAs(content, "FFchatgram_PWA.zip");
         
         // Mostro il messaggio di successo
         document.getElementById('status').classList.remove('hidden');
