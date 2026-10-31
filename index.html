@@ -1,406 +1,396 @@
-
 <!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generatore FFchatgram V4 Mobile</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; }
+        h1 { color: #075e54; margin-bottom: 10px; }
+        p { color: #555; margin-bottom: 20px; }
+        button { background: #25D366; color: white; border: none; padding: 15px 25px; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; width: 100%; }
+        button:hover { background: #1ebe57; transform: translateY(-2px); }
+        .note { font-size: 13px; color: #888; margin-top: 15px; }
+    </style>
+    <!-- Libreria per creare lo ZIP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🚀 Generatore FFchatgram (V4 Mobile)</h1>
+        <p>Clicca sul pulsante qui sotto per generare l'app con l'interfaccia mobile ottimizzata (Pulsante Indietro e Scorrimento). Le tue chiavi Firebase e ImgBB sono già preconfigurate nel codice.</p>
+        
+        <button onclick="generaZip()">📥 Scarica FFchatgram_V4_Mobile.zip</button>
+        
+        <p class="note">Una volta scaricato, estrai i file e caricali sul tuo repository GitHub sovrascrivendo i precedenti.</p>
+    </div>
+
+    <script>
+        function generaZip() {
+            var zip = new JSZip();
+
+            // Configurazione Firebase già integrata
+            const firebaseConfig = `
+  apiKey: "AIzaSyDR6F1nGbRhGdDQVXWETK0XlNxhU5AKxEU",
+  authDomain: "ffchatgram.firebaseapp.com",
+  projectId: "ffchatgram",
+  storageBucket: "ffchatgram.firebasestorage.app",
+  messagingSenderId: "6270167752",
+  appId: "1:6270167752:web:dbe57e9c6166f91fa953fd"`;
+
+            const imgbbKey = `c0f85456625fe8081a3039269bb5b40a`;
+
+            // HTML DELL'APP (Con ottimizzazione Mobile e sliding)
+            var indexHtml = `<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FFchatgram</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#128C7E">
-    <script src="https://cdn.tailwindcss.com"><\/script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+    <meta name="theme-color" content="#075e54">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, doc, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    <!-- Firebase Compat (Stabile e veloce) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"><\/script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"><\/script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"><\/script>
+    
+    <!-- React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"><\/script>
 
-        const firebaseConfig = {
-  apiKey: "AIzaSyDR6F1nGbRhGdDQVXWETK0XlNxhU5AKxEU",
-  authDomain: "ffchatgram.firebaseapp.com",
-  projectId: "ffchatgram",
-  storageBucket: "ffchatgram.firebasestorage.app",
-  messagingSenderId: "6270167752",
-  appId: "1:6270167752:web:dbe57e9c6166f91fa953fd"
-};
-        
-        const app = initializeApp(firebaseConfig);
-        window.auth = getAuth(app);
-        window.db = getFirestore(app);
-        window.firebaseMethods = { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword, onAuthStateChanged, signOut, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, doc, setDoc, getDocs, deleteDoc };
-        window.dispatchEvent(new Event('firebase-ready'));
-    <\/script>
     <style>
-        body { margin: 0; background-color: #eae6df; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        .bg-chat { background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; background-attachment: fixed; }
-        .message-in { background: #ffffff; border-radius: 0px 8px 8px 8px; }
-        .message-out { background: #dcf8c6; border-radius: 8px 0px 8px 8px; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #d1d7db; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        #root { width: 100%; height: 100%; max-width: 1200px; background: white; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        
+        /* Layout Strutturale */
+        .app-layout { display: flex; height: 100%; position: relative; overflow: hidden; }
+        .sidebar { width: 35%; background: #ffffff; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; z-index: 10; transition: transform 0.3s ease; }
+        .chat-area { width: 65%; background: #efeae2; display: flex; flex-direction: column; z-index: 20; transition: transform 0.3s ease; }
+        
+        .header { background: #075e54; color: white; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; }
+        .mobile-back-btn { display: none; background: transparent; border: none; color: white; font-size: 22px; cursor: pointer; padding-right: 15px; }
+        
+        /* Media Query per Mobile (Magia dello Scorrimento) */
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; position: absolute; height: 100%; }
+            .sidebar.hidden-mobile { transform: translateX(-100%); }
+            
+            .chat-area { width: 100%; position: absolute; height: 100%; transform: translateX(100%); }
+            .chat-area.show-mobile { transform: translateX(0); }
+            
+            .mobile-back-btn { display: inline-block; }
+        }
+
+        /* Stili Chat e Componenti */
+        .contact-list { overflow-y: auto; flex: 1; }
+        .contact-item { padding: 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; display: flex; align-items: center; }
+        .contact-item:hover { background: #f5f6f6; }
+        .avatar { width: 45px; height: 45px; border-radius: 50%; background: #25D366; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; margin-right: 15px; overflow: hidden; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); }
+        .message { max-width: 75%; padding: 10px 15px; border-radius: 10px; margin-bottom: 10px; position: relative; word-wrap: break-word; }
+        .message.sent { align-self: flex-end; background: #dcf8c6; border-bottom-right-radius: 0; }
+        .message.received { align-self: flex-start; background: #ffffff; border-bottom-left-radius: 0; }
+        
+        .message img { max-width: 100%; border-radius: 8px; margin-top: 5px; cursor: pointer; }
+        .message-time { font-size: 11px; color: #888; text-align: right; display: block; margin-top: 4px; }
+        .blue-tick { color: #34B7F1; margin-left: 5px; }
+        .grey-tick { color: #999; margin-left: 5px; }
+        
+        .input-area { padding: 15px; background: #f0f0f0; display: flex; align-items: center; gap: 10px; }
+        .input-area input[type="text"] { flex: 1; padding: 12px 20px; border-radius: 25px; border: none; outline: none; font-size: 15px; }
+        .icon-btn { background: none; border: none; color: #54656f; font-size: 22px; cursor: pointer; transition: 0.2s; padding: 5px; }
+        .icon-btn:hover { color: #075e54; }
+        
+        /* Schermata di Login */
+        .login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #075e54; color: white; padding: 20px; }
+        .login-box { background: white; color: #333; padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .login-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
+        .login-box button { width: 100%; padding: 12px; background: #25D366; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        .error-msg { color: #d32f2f; background: #fde0dc; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
+        // Inizializzazione Firebase
+        const firebaseConfig = { ${firebaseConfig} };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
         const { useState, useEffect, useRef } = React;
 
         function App() {
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
-            const [fbReady, setFbReady] = useState(!!window.firebaseMethods);
 
             useEffect(() => {
-                if(!fbReady) {
-                    window.addEventListener('firebase-ready', () => setFbReady(true));
-                    return;
-                }
-                const unsubscribe = window.firebaseMethods.onAuthStateChanged(window.auth, (currentUser) => {
-                    setUser(currentUser);
+                const unsubscribe = auth.onAuthStateChanged((u) => {
+                    setUser(u);
                     setLoading(false);
                 });
-                return () => unsubscribe();
-            }, [fbReady]);
+                return unsubscribe;
+            }, []);
 
-            if (!fbReady || loading) return <div className="h-screen flex items-center justify-center flex-col"><div className="w-10 h-10 border-4 border-[#128C7E] border-t-transparent rounded-full animate-spin"></div><p className="mt-4 text-gray-500 font-semibold">Inizializzazione FFchatgram...</p></div>;
-            return user ? <Dashboard user={user} /> : <AuthScreen />;
+            if (loading) return <div style={{display:'flex', height:'100vh', justifyContent:'center', alignItems:'center'}}><h3>Inizializzazione App...</h3></div>;
+            return user ? <ChatDashboard user={user} /> : <LoginScreen />;
         }
 
-        function AuthScreen() {
-            const [isLogin, setIsLogin] = useState(true);
+        function LoginScreen() {
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
-            const [name, setName] = useState('');
             const [error, setError] = useState('');
+            const [isRegister, setIsRegister] = useState(false);
 
             const handleAuth = async (e) => {
                 e.preventDefault();
                 setError('');
                 try {
-                    if (isLogin) {
-                        await window.firebaseMethods.signInWithEmailAndPassword(window.auth, email, password);
-                    } else {
-                        const userCred = await window.firebaseMethods.createUserWithEmailAndPassword(window.auth, email, password);
-                        await window.firebaseMethods.setDoc(window.firebaseMethods.doc(window.db, "users", userCred.user.uid), {
-                            uid: userCred.user.uid, email: email.toLowerCase(), name: name
+                    if (isRegister) {
+                        await auth.createUserWithEmailAndPassword(email, password);
+                        await db.collection('users').doc(auth.currentUser.uid).set({
+                            email: email,
+                            status: 'Online',
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
                         });
+                    } else {
+                        await auth.signInWithEmailAndPassword(email, password);
                     }
                 } catch (err) {
-                    setError("Errore: controlla le credenziali o la lunghezza della password.");
+                    setError(err.message); // Stampa l'errore esatto di Firebase
                 }
             };
 
-            const handleReset = async () => {
-                if(!email) { setError("Inserisci la tua email prima di cliccare su recupera password."); return; }
+            const resetPassword = async () => {
+                if(!email) return setError("Inserisci la tua email per resettare la password.");
                 try {
-                    await window.firebaseMethods.sendPasswordResetEmail(window.auth, email);
-                    alert("Email per il reset della password inviata! Controlla la posta.");
-                } catch (err) { setError("Errore nell'invio dell'email."); }
-            };
-
-            return (
-                <div className="h-screen flex flex-col items-center justify-center bg-gray-100 px-4">
-                    <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
-                        <div className="text-center mb-6">
-                            <h2 className="text-4xl font-bold text-[#128C7E]">FFchatgram</h2>
-                            <p className="text-gray-500 mt-2">La tua messaggistica privata</p>
-                        </div>
-                        <form onSubmit={handleAuth} className="space-y-4">
-                            {!isLogin && <input required placeholder="Il tuo Nome o Nickname" value={name} onChange={e => setName(e.target.value)} className="w-full p-3 border rounded focus:outline-none focus:border-[#128C7E]" />}
-                            <input required type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="w-full p-3 border rounded focus:outline-none focus:border-[#128C7E]" />
-                            <input required type="password" placeholder="Password (min. 6 caratt.)" value={password} onChange={e => setPassword(e.target.value)} className="w-full p-3 border rounded focus:outline-none focus:border-[#128C7E]" />
-                            {error && <p className="text-red-500 text-sm font-bold">{error}</p>}
-                            <button type="submit" className="w-full bg-[#128C7E] text-white p-3 rounded font-bold hover:bg-[#075E54] transition shadow-md">{isLogin ? 'Accedi' : 'Registrati'}</button>
-                        </form>
-                        {isLogin && <p className="mt-4 text-center text-sm text-[#128C7E] cursor-pointer hover:underline" onClick={handleReset}>Hai dimenticato la password?</p>}
-                        <div className="mt-6 border-t pt-4 text-center">
-                            <button onClick={() => setIsLogin(!isLogin)} className="text-sm font-bold text-gray-700 bg-gray-200 px-4 py-2 rounded-full hover:bg-gray-300">
-                                {isLogin ? "Crea un nuovo account" : "Torna all'accesso"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        function Dashboard({ user }) {
-            const [chats, setChats] = useState([]);
-            const [activeChat, setActiveChat] = useState(null);
-            const [searchTerm, setSearchTerm] = useState('');
-            const [showSettings, setShowSettings] = useState(false);
-            const [newPass, setNewPass] = useState('');
-
-            useEffect(() => {
-                const q = window.firebaseMethods.query(
-                    window.firebaseMethods.collection(window.db, "chats"),
-                    window.firebaseMethods.where("members", "array-contains", user.uid)
-                );
-                const unsubscribe = window.firebaseMethods.onSnapshot(q, (snapshot) => {
-                    const chatsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    chatsData.sort((a, b) => (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0));
-                    setChats(chatsData);
-                });
-                return () => unsubscribe();
-            }, [user]);
-
-            const copyInviteLink = () => {
-                const link = window.location.href.split('?')[0];
-                navigator.clipboard.writeText("Ehi! Iscriviti alla mia chat privata FFchatgram qui: " + link);
-                alert("Link di invito copiato! Invia il messaggio al tuo affiliato (es. su WhatsApp).");
-            };
-
-            const addContact = async () => {
-                const emailToAdd = prompt("Inserisci l'email dell'affiliato GIÀ REGISTRATO da aggiungere:");
-                if (!emailToAdd) return;
-                const usersRef = window.firebaseMethods.collection(window.db, "users");
-                const q = window.firebaseMethods.query(usersRef, window.firebaseMethods.where("email", "==", emailToAdd.toLowerCase()));
-                const querySnapshot = await window.firebaseMethods.getDocs(q);
-                
-                if (querySnapshot.empty) {
-                    alert("Questo utente non si è ancora registrato! Clicca sull'icona della catena per inviargli il link di invito.");
-                    return;
+                    await auth.sendPasswordResetEmail(email);
+                    alert("Email di reset inviata! Controlla la posta.");
+                } catch(err) {
+                    setError(err.message);
                 }
-                const contact = querySnapshot.docs[0].data();
-                if (contact.uid === user.uid) { alert("Non puoi aggiungere te stesso."); return; }
-
-                await window.firebaseMethods.addDoc(window.firebaseMethods.collection(window.db, "chats"), {
-                    type: 'direct', members: [user.uid, contact.uid],
-                    memberNames: { [user.uid]: "Admin", [contact.uid]: contact.name || contact.email },
-                    updatedAt: window.firebaseMethods.serverTimestamp()
-                });
             };
-
-            const createGroup = async () => {
-                const groupName = prompt("Nome del nuovo Gruppo:");
-                if (!groupName) return;
-                await window.firebaseMethods.addDoc(window.firebaseMethods.collection(window.db, "chats"), {
-                    type: 'group', name: groupName, members: [user.uid],
-                    updatedAt: window.firebaseMethods.serverTimestamp()
-                });
-            };
-
-            const handleChangePass = async () => {
-                if(newPass.length < 6) return alert("Minimo 6 caratteri");
-                try {
-                    await window.firebaseMethods.updatePassword(window.auth.currentUser, newPass);
-                    alert("Password aggiornata!");
-                    setNewPass('');
-                } catch(e) { alert("Errore, potresti dover rifare il login prima di cambiare password."); }
-            };
-
-            const filteredChats = chats.filter(chat => {
-                let chatName = chat.type === 'group' ? chat.name : (chat.memberNames ? Object.values(chat.memberNames).find(n => n !== "Admin" && n !== user.email) : "Chat");
-                return chatName?.toLowerCase().includes(searchTerm.toLowerCase());
-            });
 
             return (
-                <div className="flex h-screen w-full bg-white overflow-hidden shadow-2xl">
-                    {/* SIDEBAR */}
-                    <div className={\`w-full md:w-[380px] bg-white border-r flex flex-col \${activeChat ? 'hidden md:flex' : 'flex'}\`}> 
+                <div className="login-screen">
+                    <div className="login-box">
+                        <h2><i className="fas fa-comments"></i> FFchatgram V4</h2>
+                        <p style={{marginBottom: '20px', color: '#666'}}>{isRegister ? 'Crea un nuovo account' : 'Accedi al tuo account'}</p>
                         
-                        {/* INTESTAZIONE E IMPOSTAZIONI */}
-                        <div className="bg-[#f0f2f5] p-3 flex justify-between items-center border-b">
-                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowSettings(!showSettings)}>
-                                <div className="w-10 h-10 rounded-full bg-gray-300 flex justify-center items-center overflow-hidden">
-                                    <i className="fa-solid fa-user text-gray-500"></i>
-                                </div>
-                                <div>
-                                    <div className="font-bold text-gray-700">Profilo</div>
-                                    <div className="text-xs text-green-500 font-bold">Online</div>
-                                </div>
-                            </div>
-                            <div className="flex gap-4 text-gray-500">
-                                <button onClick={copyInviteLink} title="Invita tramite Link (Catena)"><i className="fa-solid fa-link hover:text-[#128C7E]"></i></button>
-                                <button onClick={addContact} title="Aggiungi Contatto Registrato"><i className="fa-solid fa-user-plus hover:text-[#128C7E]"></i></button>
-                                <button onClick={createGroup} title="Nuovo Gruppo"><i className="fa-solid fa-users hover:text-[#128C7E]"></i></button>
-                            </div>
+                        {error && <div className="error-msg"><i className="fas fa-exclamation-circle"></i> {error}</div>}
+                        
+                        <form onSubmit={handleAuth}>
+                            <input type="email" placeholder="Indirizzo Email" value={email} onChange={e => setEmail(e.target.value)} required />
+                            <input type="password" placeholder="Password (min 6 caratteri)" value={password} onChange={e => setPassword(e.target.value)} required />
+                            <button type="submit">{isRegister ? 'Registrati' : 'Accedi'}</button>
+                        </form>
+                        
+                        <div style={{marginTop: '15px', fontSize: '14px'}}>
+                            <a href="#" onClick={() => setIsRegister(!isRegister)} style={{color: '#075e54', textDecoration:'none', display:'block', marginBottom:'10px'}}>
+                                {isRegister ? 'Hai già un account? Accedi' : 'Nuovo utente? Registrati'}
+                            </a>
+                            {!isRegister && (
+                                <a href="#" onClick={resetPassword} style={{color: '#888', textDecoration:'none'}}>Hai dimenticato la password?</a>
+                            )}
                         </div>
-
-                        {showSettings && (
-                            <div className="p-4 bg-gray-50 border-b">
-                                <div className="font-bold mb-2 text-sm text-gray-600">Cambia Password:</div>
-                                <div className="flex gap-2 mb-4">
-                                    <input type="password" value={newPass} onChange={e=>setNewPass(e.target.value)} placeholder="Nuova pass..." className="flex-1 p-2 border rounded" />
-                                    <button onClick={handleChangePass} className="bg-blue-500 text-white px-3 rounded">Salva</button>
-                                </div>
-                                <button onClick={() => window.firebaseMethods.signOut(window.auth)} className="w-full text-red-500 border border-red-500 p-2 rounded font-bold hover:bg-red-50">Log Out (Esci)</button>
-                            </div>
-                        )}
-
-                        {/* RICERCA */}
-                        <div className="p-2 border-b bg-white">
-                            <div className="bg-[#f0f2f5] rounded-lg flex items-center px-3 py-1">
-                                <i className="fa-solid fa-search text-gray-400 text-sm"></i>
-                                <input type="text" placeholder="Cerca o inizia una nuova chat" className="bg-transparent border-none focus:outline-none w-full p-2 text-sm ml-2" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-                            </div>
-                        </div>
-
-                        {/* LISTA CHAT */}
-                        <div className="overflow-y-auto flex-1 bg-white">
-                            {filteredChats.map(chat => {
-                                let chatName = chat.type === 'group' ? chat.name : (chat.memberNames ? Object.values(chat.memberNames).find(n => n !== "Admin" && n !== user.email) : "Sconosciuto");
-                                return (
-                                    <div key={chat.id} onClick={() => setActiveChat({ id: chat.id, name: chatName, type: chat.type })} className="p-3 border-b border-gray-100 hover:bg-[#f5f6f6] cursor-pointer flex items-center gap-3 transition">
-                                        <div className="w-12 h-12 rounded-full bg-[#128C7E] flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-                                            {chatName ? chatName[0].toUpperCase() : '#'}
-                                        </div>
-                                        <div className="flex-1 overflow-hidden">
-                                            <div className="font-semibold text-gray-900 truncate">{chatName}</div>
-                                            <div className="text-sm text-gray-500 truncate">{chat.lastMessage || 'Clicca per chattare...'}</div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                            {chats.length === 0 && <div className="p-8 text-center text-gray-400 text-sm">Nessuna chat. Usa la barra in alto per invitare affiliati.</div>}
-                        </div>
-                    </div>
-
-                    {/* AREA CHAT */}
-                    <div className={\`flex-1 flex-col \${!activeChat ? 'hidden md:flex' : 'flex'}\`}>
-                        {activeChat ? (
-                            <ChatRoom chat={activeChat} user={user} onBack={() => setActiveChat(null)} />
-                        ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center bg-[#f0f2f5] border-l border-gray-200">
-                                <div className="text-center">
-                                    <i className="fa-solid fa-comments text-gray-300 text-8xl mb-4"></i>
-                                    <h2 className="text-3xl text-gray-500 font-light">FFchatgram per Web</h2>
-                                    <p className="text-gray-400 mt-2">Invia e ricevi messaggi veloci, sicuri e privati.</p>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
             );
         }
 
-        function ChatRoom({ chat, user, onBack }) {
+        function ChatDashboard({ user }) {
+            const [contacts, setContacts] = useState([]);
+            const [selectedChat, setSelectedChat] = useState(null);
             const [messages, setMessages] = useState([]);
-            const [newMessage, setNewMessage] = useState("");
-            const [replyTo, setReplyTo] = useState(null);
-            const scrollRef = useRef();
+            const [newMessage, setNewMessage] = useState('');
+            const messagesEndRef = useRef(null);
 
-            // Riferimento al suono (URL pubblico)
-            const notifySound = useRef(new Audio('https://actions.google.com/sounds/v1/water/water_drop.ogg'));
-
+            // Carica Contatti
             useEffect(() => {
-                const messagesRef = window.firebaseMethods.collection(window.db, "chats", chat.id, "messages");
-                const q = window.firebaseMethods.query(messagesRef, window.firebaseMethods.orderBy("timestamp", "asc"));
-                
-                const unsubscribe = window.firebaseMethods.onSnapshot(q, (snapshot) => {
-                    const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    
-                    // Controlla se c'è un nuovo messaggio non da me per suonare
-                    if(msgs.length > messages.length && messages.length > 0) {
-                        const lastMsg = msgs[msgs.length -1];
-                        if(lastMsg.senderId !== user.uid) {
-                            notifySound.current.play().catch(e=>console.log(e));
+                const unsubscribe = db.collection('users').onSnapshot(snapshot => {
+                    const usersList = [];
+                    snapshot.forEach(doc => {
+                        if (doc.id !== user.uid) {
+                            usersList.push({ id: doc.id, ...doc.data() });
                         }
-                    }
-                    
-                    setMessages(msgs);
-                    setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+                    });
+                    setContacts(usersList);
                 });
-                return () => unsubscribe();
-            }, [chat.id, messages.length, user.uid]);
+                return unsubscribe;
+            }, [user.uid]);
 
-            const sendMessage = async (e) => {
-                e.preventDefault();
-                if (!newMessage.trim()) return;
-                const text = newMessage;
-                const currentReply = replyTo;
+            // Carica Messaggi per la chat selezionata
+            useEffect(() => {
+                if (!selectedChat) return;
+                const chatId = user.uid < selectedChat.id ? user.uid + '_' + selectedChat.id : selectedChat.id + '_' + user.uid;
                 
-                setNewMessage("");
-                setReplyTo(null);
+                const unsubscribe = db.collection('chats').doc(chatId).collection('messages')
+                    .orderBy('timestamp', 'asc')
+                    .onSnapshot(snapshot => {
+                        const msgs = [];
+                        snapshot.forEach(doc => msgs.push({ id: doc.id, ...doc.data() }));
+                        setMessages(msgs);
+                        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+                        
+                        // Segna come letti i messaggi ricevuti (Spunte Blu)
+                        msgs.forEach(msg => {
+                            if (msg.sender !== user.uid && !msg.read) {
+                                db.collection('chats').doc(chatId).collection('messages').doc(msg.id).update({ read: true });
+                            }
+                        });
+                    });
+                return unsubscribe;
+            }, [selectedChat, user.uid]);
 
-                await window.firebaseMethods.addDoc(window.firebaseMethods.collection(window.db, "chats", chat.id, "messages"), {
-                    text,
-                    senderId: user.uid,
-                    senderName: "Tu", // Nasconde l'email vera
-                    replyToData: currentReply ? { text: currentReply.text, sender: currentReply.senderId === user.uid ? "Tu" : "Affiliato" } : null,
-                    timestamp: window.firebaseMethods.serverTimestamp()
+            const sendMessage = async (e, imageUrl = null) => {
+                if (e) e.preventDefault();
+                if (!newMessage.trim() && !imageUrl) return;
+
+                const chatId = user.uid < selectedChat.id ? user.uid + '_' + selectedChat.id : selectedChat.id + '_' + user.uid;
+                
+                await db.collection('chats').doc(chatId).collection('messages').add({
+                    text: newMessage.trim(),
+                    imageUrl: imageUrl,
+                    sender: user.uid,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    read: false
                 });
-                await window.firebaseMethods.setDoc(window.firebaseMethods.doc(window.db, "chats", chat.id), {
-                    lastMessage: text,
-                    updatedAt: window.firebaseMethods.serverTimestamp()
-                }, { merge: true });
+
+                setNewMessage('');
             };
 
-            const deleteMsg = async (msgId) => {
-                if(confirm("Eliminare per tutti?")) {
-                    await window.firebaseMethods.deleteDoc(window.firebaseMethods.doc(window.db, "chats", chat.id, "messages", msgId));
+            const handleImageUpload = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('image', file);
+
+                try {
+                    const res = await fetch('https://api.imgbb.com/1/upload?key=${imgbbKey}', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if(data.success) {
+                        sendMessage(null, data.data.url);
+                    } else {
+                        alert("Errore caricamento immagine.");
+                    }
+                } catch (error) {
+                    alert("Errore di rete durante il caricamento.");
                 }
             };
 
+            const logout = () => {
+                auth.signOut();
+            };
+
+            // Link d'invito
+            const copyInvite = () => {
+                navigator.clipboard.writeText(window.location.href);
+                alert("Link copiato! Invia questo link al tuo affiliato per farlo iscrivere.");
+            };
+
             return (
-                <div className="flex flex-col h-full bg-chat w-full relative">
-                    {/* Header Chat */}
-                    <div className="bg-[#f0f2f5] p-2 flex items-center gap-3 border-b border-gray-200">
-                        <button onClick={onBack} className="md:hidden text-gray-600 p-2"><i className="fa-solid fa-arrow-left"></i></button>
-                        <div className="w-10 h-10 rounded-full bg-[#128C7E] flex items-center justify-center text-white font-bold flex-shrink-0">{chat.name[0]?.toUpperCase()}</div>
-                        <div className="font-semibold text-gray-800">{chat.name}</div>
-                    </div>
-
-                    {/* Messaggi */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                        {messages.map(msg => {
-                            const isMe = msg.senderId === user.uid;
-                            return (
-                                <div key={msg.id} className={\`flex \${isMe ? 'justify-end' : 'justify-start'}\`}>
-                                    <div className={\`max-w-[80%] md:max-w-[65%] px-3 py-2 shadow-sm relative group \${isMe ? 'message-out' : 'message-in'}\`}>
-                                        
-                                        {/* Tasti Azione (Rispondi / Elimina) */}
-                                        <div className="hidden group-hover:flex absolute top-0 right-0 -mt-3 -mr-3 bg-white shadow-md rounded-full p-1 border z-10">
-                                            <button onClick={() => setReplyTo(msg)} className="text-gray-500 hover:text-blue-500 w-6 h-6 flex justify-center items-center rounded-full bg-gray-50 hover:bg-blue-50" title="Rispondi"><i className="fa-solid fa-reply text-xs"></i></button>
-                                            {isMe && <button onClick={() => deleteMsg(msg.id)} className="text-gray-500 hover:text-red-500 w-6 h-6 flex justify-center items-center rounded-full bg-gray-50 hover:bg-red-50 ml-1" title="Elimina"><i className="fa-solid fa-trash text-xs"></i></button>}
-                                        </div>
-
-                                        {/* Citazione */}
-                                        {msg.replyToData && (
-                                            <div className="bg-black/5 border-l-4 border-[#128C7E] p-2 mb-1 rounded text-sm text-gray-700">
-                                                <div className="font-bold text-[#128C7E] text-[11px]">{msg.replyToData.sender}</div>
-                                                <div className="truncate text-xs">{msg.replyToData.text}</div>
-                                            </div>
-                                        )}
-
-                                        <div className="text-gray-800 text-[15px] leading-snug break-words">{msg.text}</div>
-                                        <div className="text-[10px] text-gray-400 text-right mt-1 flex justify-end items-center gap-1">
-                                            {msg.timestamp?.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) || '...'}
-                                            {isMe && <i className="fa-solid fa-check-double text-blue-500"></i>}
+                <div className="app-layout">
+                    {/* COLONNA SINISTRA: RUBRICA */}
+                    <div className={\`sidebar \${selectedChat ? 'hidden-mobile' : ''}\`}>
+                        <div className="header">
+                            <div style={{display:'flex', alignItems:'center'}}>
+                                <div className="avatar"><i className="fas fa-user"></i></div>
+                                <div>
+                                    <div style={{fontWeight:'bold'}}>Il tuo Profilo</div>
+                                    <div style={{fontSize:'12px', color:'#dcf8c6'}}>● Online</div>
+                                </div>
+                            </div>
+                            <div>
+                                <button className="icon-btn" onClick={copyInvite} style={{color:'white'}} title="Invita Affiliato"><i className="fas fa-link"></i></button>
+                                <button className="icon-btn" onClick={logout} style={{color:'white'}} title="Esci"><i className="fas fa-sign-out-alt"></i></button>
+                            </div>
+                        </div>
+                        
+                        <div className="contact-list">
+                            {contacts.length === 0 ? (
+                                <div style={{padding:'20px', textAlign:'center', color:'#888'}}>Nessun affiliato registrato. Usa il tasto 🔗 in alto per invitarli!</div>
+                            ) : (
+                                contacts.map(c => (
+                                    <div key={c.id} className="contact-item" onClick={() => setSelectedChat(c)}>
+                                        <div className="avatar">{c.email.charAt(0).toUpperCase()}</div>
+                                        <div>
+                                            <div style={{fontWeight:'bold', color:'#333'}}>{c.email.split('@')[0]}</div>
+                                            <div style={{fontSize:'13px', color:'#888'}}>Clicca per chattare</div>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                        <div ref={scrollRef}></div>
+                                ))
+                            )}
+                        </div>
                     </div>
 
-                    {/* Banner "Stai rispondendo" */}
-                    {replyTo && (
-                        <div className="bg-[#f0f2f5] px-4 py-2 border-l-4 border-[#128C7E] flex justify-between items-center absolute bottom-[60px] w-full shadow-lg">
-                            <div className="text-sm truncate">
-                                <span className="font-bold text-[#128C7E]">Rispondi a {replyTo.senderId === user.uid ? "Te stesso" : "Affiliato"}:</span><br/>
-                                <span className="text-gray-600">{replyTo.text}</span>
-                            </div>
-                            <button onClick={() => setReplyTo(null)} className="text-gray-500 hover:text-gray-800 p-2"><i className="fa-solid fa-xmark"></i></button>
-                        </div>
-                    )}
+                    {/* COLONNA DESTRA: CHAT (Scorre sopra su Mobile) */}
+                    <div className={\`chat-area \${selectedChat ? 'show-mobile' : ''}\`}>
+                        {selectedChat ? (
+                            <>
+                                <div className="header">
+                                    <div style={{display:'flex', alignItems:'center'}}>
+                                        {/* Tasto Indietro Mobile */}
+                                        <button className="mobile-back-btn" onClick={() => setSelectedChat(null)}>
+                                            <i className="fas fa-arrow-left"></i>
+                                        </button>
+                                        <div className="avatar">{selectedChat.email.charAt(0).toUpperCase()}</div>
+                                        <div style={{fontWeight:'bold'}}>{selectedChat.email.split('@')[0]}</div>
+                                    </div>
+                                </div>
+                                
+                                <div className="messages">
+                                    {messages.map(msg => (
+                                        <div key={msg.id} className={\`message \${msg.sender === user.uid ? 'sent' : 'received'}\`}>
+                                            {msg.imageUrl && <a href={msg.imageUrl} target="_blank"><img src={msg.imageUrl} alt="Allegato" /></a>}
+                                            {msg.text && <div>{msg.text}</div>}
+                                            <span className="message-time">
+                                                {msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '...'}
+                                                {msg.sender === user.uid && (
+                                                    <span className={msg.read ? "blue-tick" : "grey-tick"}><i className="fas fa-check-double"></i></span>
+                                                )}
+                                            </span>
+                                        </div>
+                                    ))}
+                                    <div ref={messagesEndRef} />
+                                </div>
 
-                    {/* Input Area */}
-                    <div className="bg-[#f0f2f5] p-3 flex-shrink-0 z-20">
-                        <form onSubmit={sendMessage} className="flex gap-2 bg-white rounded-full p-1 pl-4 shadow-sm items-center">
-                            <input 
-                                value={newMessage} 
-                                onChange={(e) => setNewMessage(e.target.value)} 
-                                placeholder="Scrivi un messaggio..." 
-                                className="flex-1 focus:outline-none bg-transparent text-[15px]"
-                            />
-                            <button type="submit" className="bg-[#128C7E] text-white w-10 h-10 rounded-full flex justify-center items-center hover:bg-[#075E54] transition-colors shadow flex-shrink-0">
-                                <i className="fa-solid fa-paper-plane translate-x-[-1px] translate-y-[1px]"></i>
-                            </button>
-                        </form>
+                                <form className="input-area" onSubmit={(e) => sendMessage(e)}>
+                                    <input type="file" id="fileInput" style={{display:'none'}} accept="image/*" onChange={handleImageUpload} />
+                                    <button type="button" className="icon-btn" onClick={() => document.getElementById('fileInput').click()}>
+                                        <i className="fas fa-paperclip"></i>
+                                    </button>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Scrivi un messaggio..." 
+                                        value={newMessage}
+                                        onChange={e => setNewMessage(e.target.value)}
+                                    />
+                                    <button type="submit" className="icon-btn" style={{color: newMessage ? '#075e54' : '#a0a0a0'}}>
+                                        <i className="fas fa-paper-plane"></i>
+                                    </button>
+                                </form>
+                            </>
+                        ) : (
+                            <div style={{flex:1, display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'center', background:'#f0f2f5', color:'#888'}}>
+                                <i className="fas fa-comments" style={{fontSize:'60px', color:'#ccc', marginBottom:'15px'}}></i>
+                                <h2>FFchatgram Web</h2>
+                                <p>Seleziona un affiliato dalla rubrica per iniziare.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -410,5 +400,34 @@
         root.render(<App />);
     <\/script>
 </body>
+</html>`;
+
+            // Creazione Manifesto e Service Worker
+            var manifestJson = \`{
+  "name": "FFchatgram",
+  "short_name": "FFchatgram",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#075e54",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1384/1384055.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}\`;
+
+            // Aggiungi file allo ZIP
+            zip.file("index.html", indexHtml);
+            zip.file("manifest.json", manifestJson);
+            
+            // Genera ZIP e scarica
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                saveAs(content, "FFchatgram_V4_Mobile.zip");
+            });
+        }
+    </script>
+</body>
 </html>
-    
