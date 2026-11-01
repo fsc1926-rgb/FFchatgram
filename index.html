@@ -1,25 +1,3 @@
-È un'idea **assolutamente geniale**. Unire la messaggistica istantanea a un CRM interno (invisibile agli altri) trasforma FFchatgram da una semplice app di chat a un vero e proprio **Ecosistema Aziendale**.
-
-Sì, è assolutamente fattibile e, usando React e Firestore, possiamo farlo **senza appesantire minimamente l'app**. Il trucco è caricare i dati del CRM dal database *solo quando tu, come amministratore, apri quella specifica sezione*.
-
-Ho riprogettato la struttura inserendo un vero e proprio **App Launcher (stile Microsoft 365 o Google Workspace)**. In alto a sinistra troverai l'icona con i 9 puntini (il tipico menu a griglia). Cliccandolo (solo tu che sei Admin) potrai switchare tra:
-
-* 💬 **Messaggi:** La chat classica che già conosci.
-* 📊 **CRM Affiliati (Notion Style):** Il tuo nuovo gestionale segreto.
-
-### Cosa troverai nel nuovo CRM (Stile Notion):
-
-1. **Layout a Pagine:** Cliccando su un affiliato, si aprirà una vera e propria scheda a tutto schermo molto pulita (stile Notion).
-2. **Copertina ed Emoji:** Potrai impostare un'icona (emoji) e vedere una copertina in alto.
-3. **Proprietà Personalizzate:** Sotto il titolo ci sono dei campi rapidi: *Stato dell'affiliato* (Es. Lead, In Trattativa, Attivo, VIP), *Telefono*, e *Note Rapide*.
-4. **Foglio di Lavoro Infinito:** Una grande area di testo bianco (o scuro in Dark Mode) dove puoi appuntare la cronologia delle chiamate, i link, le strategie o i dati di fatturazione.
-5. **Autosave Integrato:** Proprio come Notion, non c'è un tasto "Salva". Appena finisci di scrivere e clicchi fuori dalla casella, il sistema salva istantaneamente tutto in cloud.
-
-Ho eseguito revisioni incrociate per assicurarmi che il passaggio tra Chat e CRM sia fluido, istantaneo e soprattutto *totalmente inaccessibile* agli utenti normali.
-
-Ecco il codice definitivo **V6 (CRM Notion Edition)**. Salva sempre il tuo file precedente come backup, e poi sovrascrivi `index.html` su GitHub con questo:
-
-```html
 <!DOCTYPE html>
 <html lang="it">
 <head>
