@@ -5,9 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FFchatgram</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#075E54">
+    <meta name="theme-color" content="#008069">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FFchatgram">
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1384/1384055.png">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1384/1384055.png">
+
+    <!-- CATTURA IMMEDIATA DELL'EVENTO DI INSTALLAZIONE PRIMA DEL CARICAMENTO DI REACT -->
+    <script>
+        window.deferredPwaPrompt = null;
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            window.deferredPwaPrompt = e;
+            window.dispatchEvent(new Event('pwa-prompt-ready'));
+        });
+        window.addEventListener('appinstalled', function() {
+            window.deferredPwaPrompt = null;
+            window.dispatchEvent(new Event('pwa-installed'));
+        });
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -17,12 +36,31 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { 
-            getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, 
-            updatePassword, onAuthStateChanged, signOut, updateProfile 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            sendPasswordResetEmail, 
+            updatePassword, 
+            onAuthStateChanged, 
+            signOut, 
+            updateProfile 
         } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
         import { 
-            getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, 
-            doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, arrayUnion
+            getFirestore, 
+            collection, 
+            addDoc, 
+            query, 
+            where, 
+            orderBy, 
+            onSnapshot, 
+            serverTimestamp, 
+            doc, 
+            setDoc, 
+            getDoc, 
+            getDocs, 
+            deleteDoc, 
+            updateDoc, 
+            arrayUnion
         } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         try {
@@ -40,14 +78,32 @@
             window.db = getFirestore(app);
             window.IMGBB_API_KEY = "c0f85456625fe8081a3039269bb5b40a".toLowerCase();
             window.firebaseMethods = {
-                signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword,
-                onAuthStateChanged, signOut, updateProfile, collection, addDoc, query, where, orderBy, onSnapshot,
-                serverTimestamp, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, arrayUnion
+                signInWithEmailAndPassword,
+                createUserWithEmailAndPassword,
+                sendPasswordResetEmail,
+                updatePassword,
+                onAuthStateChanged,
+                signOut,
+                updateProfile,
+                collection,
+                addDoc,
+                query,
+                where,
+                orderBy,
+                onSnapshot,
+                serverTimestamp,
+                doc,
+                setDoc,
+                getDoc,
+                getDocs,
+                deleteDoc,
+                updateDoc,
+                arrayUnion
             };
             window.firebaseReady = true;
             window.dispatchEvent(new Event('firebase-ready'));
         } catch (err) {
-            console.error("Errore Firebase:", err);
+            console.error("Errore inizializzazione Firebase:", err);
             window.firebaseInitError = err.message || "Errore di connessione a Firebase";
             window.dispatchEvent(new Event('firebase-error'));
         }
@@ -55,10 +111,34 @@
 
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; background-color: #d1d7db; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; }
-        .bg-chat-pattern { background-color: #efeae2; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; }
-        .bubble-in { background: #ffffff; border-radius: 0px 12px 12px 12px; box-shadow: 0 1px 1.5px rgba(11,20,26,.13); }
-        .bubble-out { background: #d9fdd3; border-radius: 12px 0px 12px 12px; box-shadow: 0 1px 1.5px rgba(11,20,26,.13); }
+        html, body, #root {
+            height: 100vh;
+            height: 100dvh;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            position: fixed;
+            inset: 0;
+            background-color: #d1d7db;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+        .bg-chat-pattern {
+            background-color: #efeae2;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .bubble-in {
+            background: #ffffff;
+            border-radius: 0px 12px 12px 12px;
+            box-shadow: 0 1px 1.5px rgba(11,20,26,.13);
+        }
+        .bubble-out {
+            background: #d9fdd3;
+            border-radius: 12px 0px 12px 12px;
+            box-shadow: 0 1px 1.5px rgba(11,20,26,.13);
+        }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 3px; }
     </style>
@@ -69,6 +149,70 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
+        // =========================================================================
+        // LISTA EMAIL AMMINISTRATORE (SOLO QUESTI ACCOUNT POSSONO INVITARE AFFILIATI)
+        // =========================================================================
+        const ADMIN_EMAILS = [
+            "pumafreccia@gmail.com"
+        ];
+
+        function checkIsAdmin(user, userData) {
+            const email = (user?.email || userData?.email || '').toLowerCase().trim();
+            if (!email) return false;
+            return ADMIN_EMAILS.map(e => e.toLowerCase().trim()).includes(email);
+        }
+
+        // --- GESTIONE SICURA DELL'INVITO IN MEMORIA E SESSIONE ---
+        const pendingInviteStore = {
+            key: 'ffchatgram_pending_invite',
+            chatKey: 'ffchatgram_auto_open_chat',
+            memInvite: null,
+            memChat: null,
+            getInvite() {
+                try { return window.sessionStorage.getItem(this.key) || this.memInvite; } catch (e) { return this.memInvite; }
+            },
+            setInvite(val) {
+                this.memInvite = val;
+                try { window.sessionStorage.setItem(this.key, val); } catch (e) {}
+            },
+            clearInvite() {
+                this.memInvite = null;
+                try { window.sessionStorage.removeItem(this.key); } catch (e) {}
+            },
+            getAutoChat() {
+                try { return window.sessionStorage.getItem(this.chatKey) || this.memChat; } catch (e) { return this.memChat; }
+            },
+            setAutoChat(val) {
+                this.memChat = val;
+                try { window.sessionStorage.setItem(this.chatKey, val); } catch (e) {}
+            },
+            clearAutoChat() {
+                this.memChat = null;
+                try { window.sessionStorage.removeItem(this.chatKey); } catch (e) {}
+            }
+        };
+
+        try {
+            const initParams = new URLSearchParams(window.location.search);
+            const initInvite = initParams.get('invite');
+            if (initInvite && initInvite.trim()) {
+                pendingInviteStore.setInvite(initInvite.trim());
+            }
+        } catch (e) {}
+
+        // --- GENERATORE URL D'INVITO SEMPRE VALIDO E CLICCABILE ---
+        function getInviteUrl(uid) {
+            let baseUrl = 'https://fsc1926-rgb.github.io/FFchatgram/';
+            try {
+                if (window.location.hostname && window.location.hostname.toLowerCase().includes('github.io')) {
+                    const cleanPath = window.location.pathname.replace(/\/index\.html$/i, '').replace(/\/+$/, '');
+                    baseUrl = window.location.origin + cleanPath + '/';
+                }
+            } catch (e) {}
+            return baseUrl + '?invite=' + encodeURIComponent(uid || '');
+        }
+
+        // --- FUNZIONE SONORA NOTIFICA ---
         function playNotificationSound() {
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -76,221 +220,679 @@
                 const ctx = new AudioCtx();
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
-                osc.type = 'sine'; osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.09);
-                gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
-                osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.22);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.22);
             } catch (e) {}
         }
 
+        // --- COPIA NEGLI APPUNTI COMPATIBILE CON TUTTI I DISPOSITIVI ---
         function copyTextSafe(text) {
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
-            } else { fallbackCopy(text); }
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+                } else {
+                    fallbackCopy(text);
+                }
+            } catch (e) {
+                fallbackCopy(text);
+            }
         }
         function fallbackCopy(text) {
-            const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-            document.body.appendChild(ta); ta.focus(); ta.select();
-            try { document.execCommand('copy'); } catch (e) {} document.body.removeChild(ta);
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            } catch (e) {}
         }
 
+        // --- UPLOAD IMMAGINE SU IMGBB ---
         async function uploadImageToImgBB(file) {
-            const formData = new FormData(); formData.append('image', file);
-            const apiKey = window.IMGBB_API_KEY;
-            const response = await fetch('https://api.imgbb.com/1/upload?key=' + apiKey, { method: 'POST', body: formData });
+            const formData = new FormData();
+            formData.append('image', file);
+            const apiKey = (window.IMGBB_API_KEY || 'c0f85456625fe8081a3039269bb5b40a').toLowerCase().trim();
+            const response = await fetch('https://api.imgbb.com/1/upload?key=' + apiKey, {
+                method: 'POST',
+                body: formData
+            });
             const data = await response.json();
-            if (data?.success) return data.data.display_url || data.data.url;
-            throw new Error('Errore caricamento ImgBB');
+            if (data && data.success && data.data && data.data.url) {
+                return data.data.display_url || data.data.url;
+            }
+            throw new Error((data && data.error && data.error.message) || 'Errore durante il caricamento su ImgBB');
         }
 
+        // --- COMPONENTE AVATAR ---
         function Avatar({ name, photoURL, isGroup, size = "w-11 h-11", textSize = "text-base" }) {
             const initial = name ? name.trim()[0].toUpperCase() : '?';
-            if (photoURL) return <img src={photoURL} alt="Avatar" className={size + " rounded-full object-cover flex-shrink-0 border border-black/10 bg-emerald-700"} />;
-            return <div className={size + " rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 shadow-inner " + (isGroup ? "bg-teal-600" : "bg-[#008069]") + " " + textSize}>{isGroup ? <i className="fa-solid fa-users text-sm"></i> : initial}</div>;
+            if (photoURL) {
+                return (
+                    <img
+                        src={photoURL}
+                        alt={name || "Avatar"}
+                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/100x100/008069/ffffff?text=' + initial; }}
+                        className={size + " rounded-full object-cover flex-shrink-0 border border-black/10 bg-emerald-700"}
+                    />
+                );
+            }
+            return (
+                <div className={size + " rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 shadow-inner " + (isGroup ? "bg-teal-600" : "bg-[#008069]") + " " + textSize}>
+                    {isGroup ? <i className="fa-solid fa-users text-sm"></i> : initial}
+                </div>
+            );
         }
 
+        // --- FINESTRA GUIDATA PER L'INSTALLAZIONE SU TELEFONO ---
+        function InstallGuideModal({ onClose }) {
+            const ua = typeof navigator !== 'undefined' ? navigator.userAgent.toLowerCase() : '';
+            const isIOS = /iphone|ipad|ipod/.test(ua);
+            const isInApp = /whatsapp|fbav|fban|instagram|telegram/.test(ua);
+
+            return (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="bg-[#008069] px-5 py-4 text-white flex items-center justify-between">
+                            <h3 className="font-bold text-base flex items-center gap-2">
+                                <i className="fa-solid fa-mobile-screen-button"></i> Installa FFchatgram sul Telefono
+                            </h3>
+                            <button onClick={onClose} className="text-white/80 hover:text-white cursor-pointer">
+                                <i className="fa-solid fa-xmark text-lg"></i>
+                            </button>
+                        </div>
+
+                        <div className="p-5 space-y-4 text-sm text-gray-700 max-h-[80vh] overflow-y-auto">
+                            {isInApp && (
+                                <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl text-amber-900 text-xs leading-relaxed">
+                                    <div className="font-bold mb-1 flex items-center gap-1.5 text-amber-700">
+                                        <i className="fa-solid fa-triangle-exclamation"></i> Passo Preliminare (Sei dentro WhatsApp/Social)
+                                    </div>
+                                    Tocca i <b>3 puntini ⋮</b> in alto a destra e scegli <b>"Apri in Chrome"</b> o <b>"Apri nel browser"</b> per sbloccare l'installazione.
+                                </div>
+                            )}
+
+                            {isIOS ? (
+                                <div className="space-y-3">
+                                    <div className="font-bold text-gray-900">Come installarla su iPhone / iPad (Safari):</div>
+                                    <div className="flex items-start gap-3 bg-gray-50 p-3 rounded-xl border">
+                                        <span className="w-6 h-6 rounded-full bg-[#008069] text-white font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                                        <div>Tocca il pulsante <b>Condividi</b> <i className="fa-solid fa-arrow-up-from-bracket text-[#008069] mx-1"></i> nella barra in basso di Safari.</div>
+                                    </div>
+                                    <div className="flex items-start gap-3 bg-gray-50 p-3 rounded-xl border">
+                                        <span className="w-6 h-6 rounded-full bg-[#008069] text-white font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                                        <div>Scorri il menu verso il basso e tocca <b>"Aggiungi alla schermata Home"</b> <i className="fa-regular fa-square-plus text-[#008069] mx-1"></i>.</div>
+                                    </div>
+                                    <div className="flex items-start gap-3 bg-gray-50 p-3 rounded-xl border">
+                                        <span className="w-6 h-6 rounded-full bg-[#008069] text-white font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                                        <div>Tocca <b>"Aggiungi"</b> in alto a destra: troverai l'icona di FFchatgram sulla tua schermata Home!</div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <div className="font-bold text-gray-900">Come installarla su Smartphone Android:</div>
+                                    <div className="flex items-start gap-3 bg-gray-50 p-3 rounded-xl border">
+                                        <span className="w-6 h-6 rounded-full bg-[#008069] text-white font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                                        <div>Tocca l'icona del menu del browser (i <b>3 puntini ⋮</b> in alto a destra su Chrome).</div>
+                                    </div>
+                                    <div className="flex items-start gap-3 bg-gray-50 p-3 rounded-xl border">
+                                        <span className="w-6 h-6 rounded-full bg-[#008069] text-white font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                                        <div>Seleziona la voce <b>"Installa app"</b> oppure <b>"Aggiungi a schermata Home"</b>.</div>
+                                    </div>
+                                    <div className="flex items-start gap-3 bg-gray-50 p-3 rounded-xl border">
+                                        <span className="w-6 h-6 rounded-full bg-[#008069] text-white font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                                        <div>Conferma premendo <b>Installa</b>: l'app comparirà insieme alle altre app del telefono!</div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="w-full bg-[#008069] hover:bg-[#017561] text-white font-bold text-xs py-3 rounded-xl transition cursor-pointer"
+                            >
+                                Ho capito, chiudi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- APP PRINCIPALE ---
         function App() {
             const [fbReady, setFbReady] = useState(!!window.firebaseReady);
+            const [fbError, setFbError] = useState(window.firebaseInitError || '');
             const [user, setUser] = useState(null);
             const [userData, setUserData] = useState(null);
             const [authLoading, setAuthLoading] = useState(true);
             const [toast, setToast] = useState(null);
-            
+
             // STATI PER L'INSTALLAZIONE PWA
-            const [installPrompt, setInstallPrompt] = useState(null);
-            const [isIos, setIsIos] = useState(false);
+            const [isStandalone, setIsStandalone] = useState(false);
+            const [deferredPrompt, setDeferredPrompt] = useState(() => window.deferredPwaPrompt || null);
+            const [showInstallGuide, setShowInstallGuide] = useState(false);
 
             const showToast = (msg, type = 'success') => {
                 setToast({ msg, type });
                 setTimeout(() => setToast(null), 3500);
             };
 
-            // GESTIONE EVENTO INSTALLAZIONE
             useEffect(() => {
-                setIsIos(/iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()));
-                const handleBeforeInstall = (e) => {
-                    e.preventDefault(); // Blocchiamo il popup automatico
-                    setInstallPrompt(e); // Salviamo l'evento per usarlo col nostro pulsante
+                try {
+                    if ('Notification' in window && Notification.permission === 'default') {
+                        Notification.requestPermission().catch(() => {});
+                    }
+                } catch (e) {}
+            }, []);
+
+            // RILEVAMENTO STATO PWA E PROMPT DI INSTALLAZIONE
+            useEffect(() => {
+                const checkStandalone = () => {
+                    try {
+                        return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+                    } catch (e) {
+                        return false;
+                    }
                 };
-                window.addEventListener('beforeinstallprompt', handleBeforeInstall);
-                return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+                setIsStandalone(checkStandalone());
+
+                const onPromptReady = () => setDeferredPrompt(window.deferredPwaPrompt);
+                const onInstalled = () => {
+                    setDeferredPrompt(null);
+                    setIsStandalone(true);
+                    setShowInstallGuide(false);
+                    showToast("FFchatgram installata con successo sul dispositivo!");
+                };
+
+                window.addEventListener('pwa-prompt-ready', onPromptReady);
+                window.addEventListener('pwa-installed', onInstalled);
+                return () => {
+                    window.removeEventListener('pwa-prompt-ready', onPromptReady);
+                    window.removeEventListener('pwa-installed', onInstalled);
+                };
             }, []);
 
             const triggerInstall = async () => {
-                if (installPrompt) {
-                    installPrompt.prompt();
-                    const { outcome } = await installPrompt.userChoice;
-                    if (outcome === 'accepted') setInstallPrompt(null);
-                } else if (isIos) {
-                    showToast("Su iPhone: tocca l'icona Condividi (il quadrato con la freccia) in basso e seleziona 'Aggiungi alla schermata Home'.", "info");
-                } else {
-                    showToast("L'app è già installata o il browser non supporta questa funzione.", "info");
+                if (isStandalone) {
+                    showToast("L'App è già installata sul tuo telefono!");
+                    return;
                 }
+                const promptEvent = deferredPrompt || window.deferredPwaPrompt;
+                if (promptEvent) {
+                    try {
+                        promptEvent.prompt();
+                        const { outcome } = await promptEvent.userChoice;
+                        if (outcome === 'accepted') {
+                            window.deferredPwaPrompt = null;
+                            setDeferredPrompt(null);
+                        }
+                        return;
+                    } catch (err) {
+                        console.error("Errore lancio prompt nativo:", err);
+                    }
+                }
+                // Se il browser non fornisce il popup automatico (es. iPhone o apertura da WhatsApp), apriamo la guida visiva
+                setShowInstallGuide(true);
             };
 
             useEffect(() => {
                 if (fbReady) return;
                 const onReady = () => setFbReady(true);
+                const onError = () => setFbError(window.firebaseInitError || 'Impossibile connettersi a Firebase.');
                 window.addEventListener('firebase-ready', onReady);
-                return () => window.removeEventListener('firebase-ready', onReady);
+                window.addEventListener('firebase-error', onError);
+                const timeout = setTimeout(() => {
+                    if (!window.firebaseReady) {
+                        setFbError('Connessione lenta o bloccata. Verifica la tua connessione internet e riprova.');
+                    }
+                }, 8000);
+                return () => {
+                    window.removeEventListener('firebase-ready', onReady);
+                    window.removeEventListener('firebase-error', onError);
+                    clearTimeout(timeout);
+                };
             }, [fbReady]);
+
+            // Collega automaticamente l'invitato con l'amministratore che lo ha invitato e apre subito la chat
+            const handleAutoInvite = async (myUid, myProfile, inviterUid) => {
+                if (!myUid || !inviterUid || myUid === inviterUid) return;
+                try {
+                    const fm = window.firebaseMethods;
+                    const inviterSnap = await fm.getDoc(fm.doc(window.db, "users", inviterUid));
+                    const inviterData = inviterSnap.exists() ? inviterSnap.data() : { name: 'Amministratore', photoURL: '' };
+
+                    const q = fm.query(fm.collection(window.db, "chats"), fm.where("members", "array-contains", myUid));
+                    const existingSnap = await fm.getDocs(q);
+                    const existingDoc = existingSnap.docs.find(d => {
+                        const data = d.data();
+                        return data.type === 'direct' && data.members && data.members.includes(inviterUid);
+                    });
+
+                    let targetChatId = null;
+                    if (existingDoc) {
+                        targetChatId = existingDoc.id;
+                    } else {
+                        const newChatRef = await fm.addDoc(fm.collection(window.db, "chats"), {
+                            type: 'direct',
+                            members: [myUid, inviterUid],
+                            memberData: {
+                                [myUid]: { name: myProfile?.name || 'Affiliato', photoURL: myProfile?.photoURL || '' },
+                                [inviterUid]: { name: inviterData.name || 'Amministratore', photoURL: inviterData.photoURL || '' }
+                            },
+                            lastMessage: '👋 Chat avviata tramite link di invito!',
+                            updatedAt: fm.serverTimestamp()
+                        });
+                        targetChatId = newChatRef.id;
+                        showToast('Collegamento completato con ' + (inviterData.name || 'Amministratore') + '!');
+                    }
+
+                    pendingInviteStore.clearInvite();
+                    if (targetChatId) {
+                        pendingInviteStore.setAutoChat(targetChatId);
+                        window.dispatchEvent(new CustomEvent('ffchatgram-open-chat', { detail: { chatId: targetChatId } }));
+                    }
+                    try {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    } catch (errHist) {}
+                } catch (e) {
+                    console.error("Errore auto-invite:", e);
+                }
+            };
 
             useEffect(() => {
                 if (!fbReady || !window.firebaseMethods) return;
                 const fm = window.firebaseMethods;
+
                 const unsub = fm.onAuthStateChanged(window.auth, async (currentUser) => {
                     setUser(currentUser);
                     if (currentUser) {
                         try {
                             const userRef = fm.doc(window.db, "users", currentUser.uid);
                             const snap = await fm.getDoc(userRef);
-                            let profileData = snap.exists() ? snap.data() : { uid: currentUser.uid, name: currentUser.email.split('@')[0], email: currentUser.email, photoURL: '', updatedAt: fm.serverTimestamp() };
-                            if (!snap.exists()) await fm.setDoc(userRef, profileData, { merge: true });
+                            let profileData;
+                            if (snap.exists()) {
+                                profileData = snap.data();
+                                if (!profileData.email && currentUser.email) {
+                                    profileData.email = currentUser.email.toLowerCase();
+                                }
+                            } else {
+                                const fallbackName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'Affiliato');
+                                profileData = {
+                                    uid: currentUser.uid,
+                                    name: fallbackName,
+                                    email: (currentUser.email || '').toLowerCase(),
+                                    photoURL: currentUser.photoURL || '',
+                                    updatedAt: fm.serverTimestamp()
+                                };
+                                await fm.setDoc(userRef, profileData, { merge: true });
+                            }
                             setUserData(profileData);
 
-                            const params = new URLSearchParams(window.location.search);
-                            const inviteUid = params.get('invite');
+                            let inviteUid = pendingInviteStore.getInvite();
+                            try {
+                                const params = new URLSearchParams(window.location.search);
+                                if (params.get('invite')) inviteUid = params.get('invite').trim();
+                            } catch (errUrl) {}
+
                             if (inviteUid && inviteUid !== currentUser.uid) {
-                                const inviterSnap = await fm.getDoc(fm.doc(window.db, "users", inviteUid));
-                                if (inviterSnap.exists()) {
-                                    const inviterData = inviterSnap.data();
-                                    const q = fm.query(fm.collection(window.db, "chats"), fm.where("members", "array-contains", currentUser.uid));
-                                    const existingSnap = await fm.getDocs(q);
-                                    const exists = existingSnap.docs.some(d => d.data().type === 'direct' && d.data().members.includes(inviteUid));
-                                    if (!exists) {
-                                        await fm.addDoc(fm.collection(window.db, "chats"), {
-                                            type: 'direct', members: [currentUser.uid, inviteUid],
-                                            memberData: {
-                                                [currentUser.uid]: { name: profileData.name, photoURL: profileData.photoURL },
-                                                [inviteUid]: { name: inviterData.name, photoURL: inviterData.photoURL }
-                                            },
-                                            lastMessage: '👋 Chat avviata tramite link d\'invito!', updatedAt: fm.serverTimestamp()
-                                        });
-                                        showToast('Collegamento completato con ' + inviterData.name + '!');
-                                    }
-                                }
-                                window.history.replaceState({}, document.title, window.location.pathname);
+                                await handleAutoInvite(currentUser.uid, profileData, inviteUid);
                             }
-                        } catch (e) {}
-                    } else { setUserData(null); }
+                        } catch (e) {
+                            console.error("Errore lettura profilo:", e);
+                        }
+                    } else {
+                        setUserData(null);
+                    }
                     setAuthLoading(false);
                 });
+
                 return () => unsub();
             }, [fbReady]);
 
-            if (!fbReady || authLoading) return <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#f0f2f5]"><div className="w-14 h-14 border-4 border-[#008069] border-t-transparent rounded-full animate-spin"></div></div>;
+            if (fbError) {
+                return (
+                    <div className="h-full w-full flex flex-col items-center justify-center bg-[#f0f2f5] p-6 text-center">
+                        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
+                            <i className="fa-solid fa-triangle-exclamation text-amber-500 text-5xl mb-4"></i>
+                            <h2 className="text-xl font-bold text-gray-800 mb-2">Errore di Connessione</h2>
+                            <p className="text-sm text-gray-600 mb-6">{fbError}</p>
+                            <button onClick={() => window.location.reload()} className="w-full bg-[#008069] text-white font-bold py-3 rounded-xl hover:bg-[#017561] transition">
+                                Riprova Connessione
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (!fbReady || authLoading) {
+                return (
+                    <div className="h-full w-full flex flex-col items-center justify-center bg-[#f0f2f5]">
+                        <div className="w-14 h-14 border-4 border-[#008069] border-t-transparent rounded-full animate-spin"></div>
+                        <h2 className="mt-4 text-lg font-bold text-[#008069]">FFchatgram</h2>
+                        <p className="text-xs text-gray-500 mt-1">Connessione crittografata in corso...</p>
+                    </div>
+                );
+            }
 
             return (
-                <div className="h-screen w-screen overflow-hidden relative select-text">
+                <div className="h-full w-full overflow-hidden relative select-text" style={{ height: '100dvh', position: 'fixed', inset: 0 }}>
                     {toast && (
-                        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl shadow-2xl text-white font-semibold text-sm flex items-center gap-2.5 transition-all" style={{ backgroundColor: toast.type === 'error' ? '#dc2626' : (toast.type === 'info' ? '#0ea5e9' : '#008069') }}>
-                            <i className={toast.type === 'error' ? "fa-solid fa-circle-exclamation" : "fa-solid fa-circle-info"}></i>
+                        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl shadow-2xl text-white font-semibold text-sm flex items-center gap-2.5 transition-all"
+                             style={{ backgroundColor: toast.type === 'error' ? '#dc2626' : '#008069' }}>
+                            <i className={toast.type === 'error' ? "fa-solid fa-circle-exclamation" : "fa-solid fa-circle-check"}></i>
                             <span>{toast.msg}</span>
                         </div>
                     )}
-                    {user ? <Dashboard user={user} userData={userData} setUserData={setUserData} showToast={showToast} triggerInstall={triggerInstall} /> : <AuthScreen showToast={showToast} triggerInstall={triggerInstall} />}
+
+                    {showInstallGuide && (
+                        <InstallGuideModal onClose={() => setShowInstallGuide(false)} />
+                    )}
+
+                    {user ? (
+                        <Dashboard
+                            user={user}
+                            userData={userData}
+                            setUserData={setUserData}
+                            showToast={showToast}
+                            triggerInstall={triggerInstall}
+                            isStandalone={isStandalone}
+                        />
+                    ) : (
+                        <AuthScreen
+                            showToast={showToast}
+                            onAutoInvite={handleAutoInvite}
+                            triggerInstall={triggerInstall}
+                            isStandalone={isStandalone}
+                        />
+                    )}
                 </div>
             );
         }
 
-        function AuthScreen({ showToast, triggerInstall }) {
-            const [mode, setMode] = useState('login');
+        // --- SCHERMATA DI LOGIN / REGISTRAZIONE / RECUPERO PASSWORD ---
+        function AuthScreen({ showToast, onAutoInvite, triggerInstall, isStandalone }) {
+            const hasInvite = useMemo(() => {
+                try {
+                    return !!(pendingInviteStore.getInvite() || new URLSearchParams(window.location.search).get('invite'));
+                } catch (e) {
+                    return !!pendingInviteStore.getInvite();
+                }
+            }, []);
+
+            const [mode, setMode] = useState(hasInvite ? 'register' : 'login');
             const [name, setName] = useState('');
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
             const [busy, setBusy] = useState(false);
             const [errorMsg, setErrorMsg] = useState('');
-            const hasInvite = useMemo(() => new URLSearchParams(window.location.search).has('invite'), []);
 
             const handleSubmit = async (e) => {
-                e.preventDefault(); setErrorMsg(''); setBusy(true);
+                e.preventDefault();
+                setErrorMsg('');
+                setBusy(true);
                 const fm = window.firebaseMethods;
+
                 try {
-                    if (mode === 'login') await fm.signInWithEmailAndPassword(window.auth, email.trim(), password);
-                    else if (mode === 'register') {
-                        if (!name.trim()) { setErrorMsg("Inserisci il Nome."); setBusy(false); return; }
+                    if (mode === 'login') {
+                        await fm.signInWithEmailAndPassword(window.auth, email.trim(), password);
+                    } else if (mode === 'register') {
+                        if (!name.trim()) {
+                            setErrorMsg("Inserisci il tuo Nome o Nickname.");
+                            setBusy(false);
+                            return;
+                        }
                         const cred = await fm.createUserWithEmailAndPassword(window.auth, email.trim(), password);
+                        const newProfile = {
+                            uid: cred.user.uid,
+                            name: name.trim(),
+                            email: email.trim().toLowerCase(),
+                            photoURL: '',
+                            updatedAt: fm.serverTimestamp()
+                        };
                         await fm.updateProfile(cred.user, { displayName: name.trim() });
-                        await fm.setDoc(fm.doc(window.db, "users", cred.user.uid), { uid: cred.user.uid, name: name.trim(), email: email.trim().toLowerCase(), photoURL: '', updatedAt: fm.serverTimestamp() });
-                        showToast("Benvenuto!");
-                    } else {
+                        await fm.setDoc(fm.doc(window.db, "users", cred.user.uid), newProfile, { merge: true });
+
+                        const inviteUid = pendingInviteStore.getInvite();
+                        if (inviteUid && inviteUid !== cred.user.uid && onAutoInvite) {
+                            await onAutoInvite(cred.user.uid, newProfile, inviteUid);
+                        }
+                        showToast("Benvenuto su FFchatgram, " + name.trim() + "!");
+                    } else if (mode === 'reset') {
+                        if (!email.trim()) {
+                            setErrorMsg("Inserisci l'indirizzo email del tuo account.");
+                            setBusy(false);
+                            return;
+                        }
                         await fm.sendPasswordResetEmail(window.auth, email.trim());
-                        showToast("Email inviata!"); setMode('login');
+                        showToast("Email di recupero inviata! Controlla la tua casella di posta.");
+                        setMode('login');
                     }
-                } catch (err) { setErrorMsg("Errore: " + (err.message || 'Credenziali non valide')); }
+                } catch (err) {
+                    console.error("Errore autenticazione Firebase:", err);
+                    setErrorMsg("ERRORE FIREBASE: " + (err.code || 'Sconosciuto') + " - " + (err.message || 'Dettagli non disponibili'));
+                }
                 setBusy(false);
             };
 
             return (
-                <div className="min-h-screen w-full bg-gradient-to-b from-[#00a884] to-[#eae6df] flex flex-col items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden z-10">
+                <div className="h-full w-full overflow-y-auto bg-gradient-to-b from-[#00a884] via-[#00a884] to-[#eae6df] flex flex-col items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                         <div className="bg-[#008069] p-6 text-center text-white">
-                            <h1 className="text-2xl font-extrabold tracking-tight"><i className="fa-solid fa-comments"></i> FFchatgram</h1>
-                            {hasInvite && <div className="mt-3 bg-white/20 text-xs py-1.5 px-3 rounded-full font-semibold"><i className="fa-solid fa-link"></i> Invito rilevato: accedi o registrati!</div>}
+                            <div className="w-16 h-16 bg-white/15 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
+                                <i className="fa-solid fa-comments text-3xl text-white"></i>
+                            </div>
+                            <h1 className="text-2xl font-extrabold tracking-tight">FFchatgram</h1>
+                            <p className="text-xs text-emerald-100 mt-1">Piattaforma Privata di Messaggistica Affiliati</p>
+                            {hasInvite && (
+                                <div className="mt-3 bg-white/20 text-white text-xs py-1.5 px-3 rounded-full inline-flex items-center gap-1.5 font-semibold">
+                                    <i className="fa-solid fa-link"></i> Invito diretto rilevato: registrati o accedi per collegarti subito!
+                                </div>
+                            )}
                         </div>
+
                         <div className="p-6">
                             <div className="flex rounded-xl bg-gray-100 p-1 mb-5">
-                                <button type="button" onClick={() => setMode('login')} className={"flex-1 py-2 text-xs font-bold rounded-lg " + (mode === 'login' ? "bg-white text-[#008069] shadow" : "text-gray-500")}>Accedi</button>
-                                <button type="button" onClick={() => setMode('register')} className={"flex-1 py-2 text-xs font-bold rounded-lg " + (mode === 'register' ? "bg-white text-[#008069] shadow" : "text-gray-500")}>Nuovo Affiliato</button>
+                                <button type="button" onClick={() => { setMode('login'); setErrorMsg(''); }}
+                                    className={"flex-1 py-2 text-xs font-bold rounded-lg transition " + (mode === 'login' ? "bg-white text-[#008069] shadow" : "text-gray-500")}>
+                                    Accedi
+                                </button>
+                                <button type="button" onClick={() => { setMode('register'); setErrorMsg(''); }}
+                                    className={"flex-1 py-2 text-xs font-bold rounded-lg transition " + (mode === 'register' ? "bg-white text-[#008069] shadow" : "text-gray-500")}>
+                                    Nuovo Affiliato
+                                </button>
+                                <button type="button" onClick={() => { setMode('reset'); setErrorMsg(''); }}
+                                    className={"flex-1 py-2 text-xs font-bold rounded-lg transition " + (mode === 'reset' ? "bg-white text-[#008069] shadow" : "text-gray-500")}>
+                                    Recupera Pass
+                                </button>
                             </div>
+
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                {mode === 'register' && <input type="text" required placeholder="Tuo Nome (Visibile in chat)" value={name} onChange={e => setName(e.target.value)} className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:border-[#008069] outline-none" />}
-                                <input type="email" required placeholder="Indirizzo Email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:border-[#008069] outline-none" />
-                                {mode !== 'reset' && <input type="password" required placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:border-[#008069] outline-none" />}
-                                {errorMsg && <div className="bg-red-50 text-red-600 text-xs font-semibold p-3 rounded-xl">{errorMsg}</div>}
-                                <button type="submit" disabled={busy} className="w-full bg-[#008069] text-white font-bold py-3 rounded-xl">{busy ? 'Attendere...' : (mode === 'login' ? 'Entra' : 'Crea Account')}</button>
+                                {mode === 'register' && (
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-600 mb-1">Il tuo Nome o Nickname (visibile in chat)</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder="Es. Marco Rossi"
+                                            value={name}
+                                            onChange={e => setName(e.target.value)}
+                                            className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-[#008069]"
+                                        />
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-600 mb-1">Indirizzo Email (Privato, mai mostrato agli altri)</label>
+                                    <input
+                                        type="email"
+                                        required
+                                        placeholder="nome@esempio.it"
+                                        value={email}
+                                        onChange={e => setEmail(e.target.value)}
+                                        className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-[#008069]"
+                                    />
+                                </div>
+
+                                {mode !== 'reset' && (
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-600 mb-1">Password</label>
+                                        <input
+                                            type="password"
+                                            required
+                                            placeholder="Minimo 6 caratteri"
+                                            value={password}
+                                            onChange={e => setPassword(e.target.value)}
+                                            className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-[#008069]"
+                                        />
+                                    </div>
+                                )}
+
+                                {errorMsg && (
+                                    <div className="bg-red-50 border border-red-200 text-red-600 text-xs font-semibold p-3 rounded-xl flex items-start gap-2 break-all">
+                                        <i className="fa-solid fa-circle-exclamation mt-0.5 flex-shrink-0"></i>
+                                        <span>{errorMsg}</span>
+                                    </div>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={busy}
+                                    className="w-full bg-[#008069] hover:bg-[#017561] text-white font-bold py-3 rounded-xl shadow-md transition disabled:opacity-50 cursor-pointer"
+                                >
+                                    {busy ? 'Attendere...' : (mode === 'login' ? 'Entra in FFchatgram' : mode === 'register' ? 'Crea Account Affiliato' : 'Invia Link di Reset Password')}
+                                </button>
                             </form>
+
+                            {!isStandalone && (
+                                <button
+                                    type="button"
+                                    onClick={triggerInstall}
+                                    className="w-full mt-4 bg-emerald-50 hover:bg-emerald-100 text-[#008069] border border-[#008069]/30 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
+                                >
+                                    <i className="fa-solid fa-download"></i> Installa App sul Telefono
+                                </button>
+                            )}
                         </div>
                     </div>
-                    {/* TASTO INSTALLAZIONE SCHERMATA LOGIN */}
-                    <button onClick={triggerInstall} className="mt-6 text-white font-bold py-3 px-6 bg-black/20 hover:bg-black/30 rounded-xl backdrop-blur-md shadow-lg transition flex items-center gap-2">
-                        <i className="fa-solid fa-mobile-screen-button text-lg"></i> Installa App sul Telefono
-                    </button>
                 </div>
             );
         }
 
-        function Dashboard({ user, userData, setUserData, showToast, triggerInstall }) {
+        // --- DASHBOARD PRINCIPALE ---
+        function Dashboard({ user, userData, setUserData, showToast, triggerInstall, isStandalone }) {
             const [chats, setChats] = useState([]);
             const [allUsers, setAllUsers] = useState({});
             const [activeChatId, setActiveChatId] = useState(null);
             const [searchTerm, setSearchTerm] = useState('');
-            const [modal, setModal] = useState(null);
+
+            // Modals state
+            const [modal, setModal] = useState(null); // 'inviteModal' | 'newChat' | 'newGroup' | 'settings' | 'addGroupMember'
             const [lightboxUrl, setLightboxUrl] = useState(null);
+
+            // Settings state
+            const [editName, setEditName] = useState(userData?.name || '');
+            const [newPass, setNewPass] = useState('');
+            const [uploadingAvatar, setUploadingAvatar] = useState(false);
+            const avatarInputRef = useRef();
+            const historyPushedRef = useRef(false);
+
+            // New Chat / Group state
+            const [contactEmailSearch, setContactEmailSearch] = useState('');
+            const [groupName, setGroupName] = useState('');
+            const [selectedMembers, setSelectedMembers] = useState([]);
+
+            // Controllo se l'utente attuale è l'Amministratore
+            const isAdmin = useMemo(() => checkIsAdmin(user, userData), [user, userData]);
+            const myInviteUrl = useMemo(() => getInviteUrl(user.uid), [user.uid]);
+
+            useEffect(() => {
+                if (userData?.name) setEditName(userData.name);
+            }, [userData]);
+
+            // Apertura e chiusura chat sincronizzata con il tasto Indietro dello smartphone
+            const selectChat = (chatId) => {
+                setActiveChatId(chatId);
+                if (chatId && !historyPushedRef.current) {
+                    try {
+                        window.history.pushState({ chatOpen: true }, '');
+                        historyPushedRef.current = true;
+                    } catch (e) {}
+                }
+            };
+
+            const handleBackToChatList = () => {
+                setActiveChatId(null);
+                if (historyPushedRef.current) {
+                    historyPushedRef.current = false;
+                    try { window.history.back(); } catch (e) {}
+                }
+            };
+
+            useEffect(() => {
+                const pendingChat = pendingInviteStore.getAutoChat();
+                if (pendingChat) {
+                    selectChat(pendingChat);
+                    pendingInviteStore.clearAutoChat();
+                }
+                const onOpenChat = (e) => {
+                    if (e.detail && e.detail.chatId) {
+                        selectChat(e.detail.chatId);
+                        pendingInviteStore.clearAutoChat();
+                    }
+                };
+                window.addEventListener('ffchatgram-open-chat', onOpenChat);
+                return () => window.removeEventListener('ffchatgram-open-chat', onOpenChat);
+            }, []);
+
+            useEffect(() => {
+                const handlePopState = () => {
+                    historyPushedRef.current = false;
+                    if (lightboxUrl) {
+                        setLightboxUrl(null);
+                    } else if (modal) {
+                        setModal(null);
+                    } else {
+                        setActiveChatId(null);
+                    }
+                };
+                window.addEventListener('popstate', handlePopState);
+                return () => window.removeEventListener('popstate', handlePopState);
+            }, [lightboxUrl, modal]);
 
             useEffect(() => {
                 const fm = window.firebaseMethods;
                 const unsub = fm.onSnapshot(fm.collection(window.db, "users"), (snap) => {
-                    const map = {}; snap.docs.forEach(d => { map[d.id] = d.data(); }); setAllUsers(map);
+                    const map = {};
+                    snap.docs.forEach(d => { map[d.id] = d.data(); });
+                    setAllUsers(map);
                 });
                 return () => unsub();
             }, []);
 
             useEffect(() => {
                 const fm = window.firebaseMethods;
-                const q = fm.query(fm.collection(window.db, "chats"), fm.where("members", "array-contains", user.uid));
+                const q = fm.query(
+                    fm.collection(window.db, "chats"),
+                    fm.where("members", "array-contains", user.uid)
+                );
                 const unsub = fm.onSnapshot(q, (snap) => {
-                    const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0));
+                    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    list.sort((a, b) => {
+                        const ta = a.updatedAt?.toMillis ? a.updatedAt.toMillis() : 0;
+                        const tb = b.updatedAt?.toMillis ? b.updatedAt.toMillis() : 0;
+                        return tb - ta;
+                    });
                     setChats(list);
                 });
                 return () => unsub();
@@ -298,186 +900,893 @@
 
             const getChatInfo = (chat) => {
                 if (!chat) return { name: 'Chat', photoURL: '', isGroup: false };
-                if (chat.type === 'group') return { name: chat.name, photoURL: chat.photoURL, isGroup: true };
-                const otherUid = chat.members.find(uid => uid !== user.uid);
+                if (chat.type === 'group') {
+                    return {
+                        name: chat.name || 'Gruppo Affiliati',
+                        photoURL: chat.photoURL || '',
+                        isGroup: true
+                    };
+                }
+                const otherUid = (chat.members || []).find(uid => uid !== user.uid);
                 const liveOther = otherUid ? allUsers[otherUid] : null;
-                return { name: liveOther?.name || chat.memberData?.[otherUid]?.name || 'Affiliato', photoURL: liveOther?.photoURL || '', isGroup: false, otherUid };
+                const cachedOther = (otherUid && chat.memberData && chat.memberData[otherUid]) ? chat.memberData[otherUid] : null;
+                return {
+                    name: liveOther?.name || cachedOther?.name || 'Affiliato',
+                    photoURL: liveOther?.photoURL || cachedOther?.photoURL || '',
+                    isGroup: false,
+                    otherUid
+                };
+            };
+
+            const isSomeoneTyping = (chat) => {
+                if (!chat || !chat.typing) return false;
+                const now = Date.now();
+                return Object.entries(chat.typing).some(([uid, ts]) => uid !== user.uid && typeof ts === 'number' && (now - ts) < 5000);
             };
 
             const handleCopyInvite = () => {
-                const inviteUrl = window.location.origin + window.location.pathname + '?invite=' + user.uid;
-                copyTextSafe("Entra nella mia chat privata FFchatgram: " + inviteUrl);
-                showToast("Link copiato! Invialo su WhatsApp ai tuoi affiliati.");
+                if (!isAdmin) return;
+                copyTextSafe(myInviteUrl);
+                setModal('inviteModal');
+                showToast("Link d'invito copiato negli appunti!");
             };
 
             const startDirectChatWithUser = async (targetUser) => {
+                if (!targetUser || targetUser.uid === user.uid) return;
                 const fm = window.firebaseMethods;
-                const existing = chats.find(c => c.type === 'direct' && c.members.includes(targetUser.uid));
-                if (existing) { setActiveChatId(existing.id); setModal(null); return; }
-                const ref = await fm.addDoc(fm.collection(window.db, "chats"), {
-                    type: 'direct', members: [user.uid, targetUser.uid],
-                    memberData: { [user.uid]: { name: userData?.name }, [targetUser.uid]: { name: targetUser.name } },
-                    lastMessage: 'Nuova conversazione', updatedAt: fm.serverTimestamp()
+
+                const existing = chats.find(c => c.type === 'direct' && c.members && c.members.includes(targetUser.uid));
+                if (existing) {
+                    selectChat(existing.id);
+                    setModal(null);
+                    return;
+                }
+
+                const newChatRef = await fm.addDoc(fm.collection(window.db, "chats"), {
+                    type: 'direct',
+                    members: [user.uid, targetUser.uid],
+                    memberData: {
+                        [user.uid]: { name: userData?.name || 'Affiliato', photoURL: userData?.photoURL || '' },
+                        [targetUser.uid]: { name: targetUser.name || 'Affiliato', photoURL: targetUser.photoURL || '' }
+                    },
+                    lastMessage: 'Nuova conversazione avviata',
+                    updatedAt: fm.serverTimestamp()
                 });
-                setActiveChatId(ref.id); setModal(null);
+                selectChat(newChatRef.id);
+                setModal(null);
+                showToast("Chat avviata con " + (targetUser.name || "Affiliato"));
+            };
+
+            const handleCreateGroup = async (e) => {
+                e.preventDefault();
+                if (!groupName.trim()) {
+                    showToast("Inserisci un nome per il gruppo", "error");
+                    return;
+                }
+                const fm = window.firebaseMethods;
+                const members = Array.from(new Set([user.uid, ...selectedMembers]));
+                const memberData = {};
+                members.forEach(uid => {
+                    const u = allUsers[uid];
+                    memberData[uid] = {
+                        name: u?.name || (uid === user.uid ? userData?.name : 'Affiliato') || 'Affiliato',
+                        photoURL: u?.photoURL || ''
+                    };
+                });
+
+                const ref = await fm.addDoc(fm.collection(window.db, "chats"), {
+                    type: 'group',
+                    name: groupName.trim(),
+                    members,
+                    memberData,
+                    lastMessage: '👥 Gruppo "' + groupName.trim() + '" creato',
+                    updatedAt: fm.serverTimestamp()
+                });
+                setGroupName('');
+                setSelectedMembers([]);
+                setModal(null);
+                selectChat(ref.id);
+                showToast("Gruppo creato con successo!");
+            };
+
+            const handleAddMembersToGroup = async () => {
+                const activeChat = chats.find(c => c.id === activeChatId);
+                if (!activeChat || selectedMembers.length === 0) return;
+                const fm = window.firebaseMethods;
+                const updatedMembers = Array.from(new Set([...(activeChat.members || []), ...selectedMembers]));
+                await fm.updateDoc(fm.doc(window.db, "chats", activeChat.id), {
+                    members: updatedMembers,
+                    updatedAt: fm.serverTimestamp()
+                });
+                setSelectedMembers([]);
+                setModal(null);
+                showToast("Nuovi affiliati aggiunti al gruppo!");
+            };
+
+            const handleSaveProfile = async (e) => {
+                e.preventDefault();
+                if (!editName.trim()) return;
+                const fm = window.firebaseMethods;
+                try {
+                    await fm.updateProfile(window.auth.currentUser, { displayName: editName.trim() });
+                    await fm.setDoc(fm.doc(window.db, "users", user.uid), {
+                        name: editName.trim(),
+                        updatedAt: fm.serverTimestamp()
+                    }, { merge: true });
+                    setUserData(prev => ({ ...prev, name: editName.trim() }));
+                    showToast("Nome profilo aggiornato!");
+                } catch (err) {
+                    showToast("Errore durante il salvataggio del profilo", "error");
+                }
+            };
+
+            const handleAvatarChange = async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setUploadingAvatar(true);
+                const fm = window.firebaseMethods;
+                try {
+                    const url = await uploadImageToImgBB(file);
+                    await fm.updateProfile(window.auth.currentUser, { photoURL: url });
+                    await fm.setDoc(fm.doc(window.db, "users", user.uid), {
+                        photoURL: url,
+                        updatedAt: fm.serverTimestamp()
+                    }, { merge: true });
+                    setUserData(prev => ({ ...prev, photoURL: url }));
+                    showToast("Foto profilo aggiornata!");
+                } catch (err) {
+                    showToast("Errore caricamento foto: " + err.message, "error");
+                }
+                setUploadingAvatar(false);
+                e.target.value = null;
+            };
+
+            const handleChangePassword = async (e) => {
+                e.preventDefault();
+                if (newPass.length < 6) {
+                    showToast("La nuova password deve avere almeno 6 caratteri", "error");
+                    return;
+                }
+                try {
+                    await window.firebaseMethods.updatePassword(window.auth.currentUser, newPass);
+                    setNewPass('');
+                    showToast("Password modificata con successo!");
+                } catch (err) {
+                    showToast("Per sicurezza, esci e rientra prima di cambiare la password.", "error");
+                }
             };
 
             const activeChat = chats.find(c => c.id === activeChatId) || null;
             const otherAffiliates = Object.values(allUsers).filter(u => u.uid && u.uid !== user.uid);
             const filteredChats = chats.filter(c => getChatInfo(c).name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-            useEffect(() => {
-                const handlePopState = (e) => { if (activeChatId) setActiveChatId(null); };
-                window.addEventListener('popstate', handlePopState);
-                return () => window.removeEventListener('popstate', handlePopState);
-            }, [activeChatId]);
-
-            const openChat = (id) => { window.history.pushState({chatId: id}, ""); setActiveChatId(id); };
-            const closeChat = () => { window.history.back(); setActiveChatId(null); };
-
             return (
-                <div className="flex fixed inset-0 bg-[#f0f2f5] overflow-hidden" style={{height: '100dvh', width: '100vw'}}>
+                <div className="flex h-full w-full bg-[#f0f2f5] overflow-hidden">
                     
-                    {/* SIDEBAR */}
-                    <div className={"w-full md:w-[400px] bg-white border-r flex flex-col flex-shrink-0 " + (activeChat ? "hidden md:flex" : "flex")}>
-                        <div className="bg-[#f0f2f5] px-4 py-3 flex items-center justify-between border-b">
-                            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setModal('settings')}>
-                                <Avatar name={userData?.name} photoURL={userData?.photoURL} />
-                                <div><div className="font-bold text-sm">{userData?.name || "Profilo"}</div><div className="text-[11px] text-[#008069]">● Online</div></div>
+                    {/* SIDEBAR SINISTRA */}
+                    <div className={"w-full md:w-[390px] lg:w-[420px] h-full bg-white border-r border-gray-200 flex flex-col flex-shrink-0 " + (activeChat ? "hidden md:flex" : "flex")}>
+                        
+                        {/* HEADER UTENTE */}
+                        <div className="bg-[#f0f2f5] px-4 py-3 flex items-center justify-between border-b border-gray-200 flex-shrink-0">
+                            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setModal('settings')} title="Impostazioni Profilo">
+                                <Avatar name={userData?.name || "Io"} photoURL={userData?.photoURL} size="w-11 h-11" />
+                                <div>
+                                    <div className="font-bold text-gray-800 text-sm leading-tight">{userData?.name || "Il Mio Profilo"}</div>
+                                    <div className="text-[11px] text-[#008069] font-bold flex items-center gap-1 mt-0.5">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Online
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex gap-2">
-                                <button onClick={() => setModal('newChat')} className="w-9 h-9 rounded-full text-gray-600 hover:bg-gray-200"><i className="fa-solid fa-address-book"></i></button>
-                                <button onClick={() => setModal('settings')} className="w-9 h-9 rounded-full text-gray-600 hover:bg-gray-200"><i className="fa-solid fa-gear"></i></button>
+
+                            <div className="flex items-center gap-1.5 text-gray-600">
+                                {!isStandalone && (
+                                    <button onClick={triggerInstall} title="Installa App sul Telefono" className="w-9 h-9 rounded-full hover:bg-gray-200 flex items-center justify-center transition text-[#008069] cursor-pointer">
+                                        <i className="fa-solid fa-download"></i>
+                                    </button>
+                                )}
+                                {isAdmin && (
+                                    <button onClick={handleCopyInvite} title="Invita Affiliato tramite Link" className="w-9 h-9 rounded-full hover:bg-gray-200 flex items-center justify-center transition text-[#008069] cursor-pointer">
+                                        <i className="fa-solid fa-link"></i>
+                                    </button>
+                                )}
+                                <button onClick={() => { setContactEmailSearch(''); setModal('newChat'); }} title="Nuova Chat" className="w-9 h-9 rounded-full hover:bg-gray-200 flex items-center justify-center transition cursor-pointer">
+                                    <i className="fa-solid fa-user-plus"></i>
+                                </button>
+                                <button onClick={() => { setGroupName(''); setSelectedMembers([]); setModal('newGroup'); }} title="Crea Gruppo" className="w-9 h-9 rounded-full hover:bg-gray-200 flex items-center justify-center transition cursor-pointer">
+                                    <i className="fa-solid fa-users"></i>
+                                </button>
+                                <button onClick={() => setModal('settings')} title="Impostazioni & Sicurezza" className="w-9 h-9 rounded-full hover:bg-gray-200 flex items-center justify-center transition cursor-pointer">
+                                    <i className="fa-solid fa-gear"></i>
+                                </button>
                             </div>
                         </div>
 
-                        <div className="p-3 bg-emerald-50/70 border-b flex gap-2">
-                            <button onClick={handleCopyInvite} className="flex-1 bg-[#008069] text-white text-xs font-bold py-2 rounded-lg shadow-sm"><i className="fa-solid fa-share-nodes"></i> Invita Affiliato</button>
+                        {/* BARRA AZIONI RAPIDE */}
+                        <div className="px-3 py-2 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between gap-2 flex-shrink-0">
+                            {isAdmin && (
+                                <button onClick={handleCopyInvite} className="flex-1 bg-[#008069] hover:bg-[#017561] text-white text-xs font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition cursor-pointer">
+                                    <i className="fa-solid fa-share-nodes"></i> Invita Affiliato
+                                </button>
+                            )}
+                            <button onClick={() => setModal('newChat')} className="flex-1 bg-white hover:bg-gray-50 text-[#008069] border border-[#008069]/30 text-xs font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer">
+                                <i className="fa-solid fa-address-book"></i> Rubrica ({otherAffiliates.length})
+                            </button>
+                            {!isStandalone && !isAdmin && (
+                                <button onClick={triggerInstall} className="flex-1 bg-[#008069] hover:bg-[#017561] text-white text-xs font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition cursor-pointer">
+                                    <i className="fa-solid fa-download"></i> Installa App
+                                </button>
+                            )}
                         </div>
 
-                        <div className="flex-1 overflow-y-auto">
+                        {/* RICERCA CHAT */}
+                        <div className="p-2.5 bg-white border-b border-gray-100 flex-shrink-0">
+                            <div className="bg-[#f0f2f5] rounded-xl flex items-center px-3.5 py-2">
+                                <i className="fa-solid fa-magnifying-glass text-gray-400 text-xs"></i>
+                                <input
+                                    type="text"
+                                    placeholder="Cerca una chat o un gruppo..."
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                    className="bg-transparent border-none focus:outline-none w-full text-sm ml-2.5 text-gray-700"
+                                />
+                                {searchTerm && (
+                                    <button onClick={() => setSearchTerm('')} className="text-gray-400 hover:text-gray-600">
+                                        <i className="fa-solid fa-xmark text-xs"></i>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* LISTA DELLE CHAT */}
+                        <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
                             {filteredChats.map(chat => {
                                 const info = getChatInfo(chat);
+                                const typing = isSomeoneTyping(chat);
+                                const isSelected = chat.id === activeChatId;
+                                const timeStr = chat.updatedAt?.toDate ? chat.updatedAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
                                 return (
-                                    <div key={chat.id} onClick={() => openChat(chat.id)} className="px-4 py-3 flex gap-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100">
+                                    <div
+                                        key={chat.id}
+                                        onClick={() => selectChat(chat.id)}
+                                        className={"px-4 py-3 flex items-center gap-3.5 cursor-pointer transition " + (isSelected ? "bg-[#f0f2f5]" : "hover:bg-gray-50")}
+                                    >
                                         <Avatar name={info.name} photoURL={info.photoURL} isGroup={info.isGroup} size="w-12 h-12" />
                                         <div className="flex-1 min-w-0">
-                                            <div className="font-bold text-sm truncate">{info.name}</div>
-                                            <div className="text-xs text-gray-500 truncate">{chat.lastMessage}</div>
+                                            <div className="flex items-center justify-between mb-0.5">
+                                                <span className="font-bold text-gray-900 text-sm truncate">{info.name}</span>
+                                                <span className="text-[11px] text-gray-400 flex-shrink-0">{timeStr}</span>
+                                            </div>
+                                            {typing ? (
+                                                <div className="text-xs text-[#00a884] font-bold italic truncate">sta scrivendo...</div>
+                                            ) : (
+                                                <div className="text-xs text-gray-500 truncate">{chat.lastMessage || "Inizia a chattare..."}</div>
+                                            )}
                                         </div>
                                     </div>
                                 );
                             })}
+
+                            {filteredChats.length === 0 && (
+                                <div className="p-8 text-center text-gray-400">
+                                    <i className="fa-regular fa-comments text-4xl mb-2 text-gray-300"></i>
+                                    <p className="text-sm font-semibold text-gray-600">Nessuna conversazione attiva</p>
+                                    <p className="text-xs mt-1">
+                                        {isAdmin ? "Clicca su Rubrica o su Invita Affiliato per iniziare subito a chattare." : "Clicca su Rubrica per avviare una conversazione."}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* CHAT ROOM */}
-                    <div className={"flex-1 flex flex-col bg-chat-pattern " + (!activeChat ? "hidden md:flex" : "flex")}>
+                    {/* AREA DESTRA: STANZA CHAT */}
+                    <div className={"flex-1 h-full flex flex-col bg-chat-pattern overflow-hidden " + (!activeChat ? "hidden md:flex" : "flex w-full")}>
                         {activeChat ? (
-                            <ChatRoom chat={activeChat} chatInfo={getChatInfo(activeChat)} user={user} userData={userData} allUsers={allUsers} onBack={closeChat} showToast={showToast} onOpenLightbox={setLightboxUrl} />
+                            <ChatRoom
+                                key={activeChat.id}
+                                chat={activeChat}
+                                chatInfo={getChatInfo(activeChat)}
+                                user={user}
+                                userData={userData}
+                                allUsers={allUsers}
+                                isTyping={isSomeoneTyping(activeChat)}
+                                onBack={handleBackToChatList}
+                                onOpenAddMembers={() => { setSelectedMembers([]); setModal('addGroupMember'); }}
+                                onOpenLightbox={(url) => setLightboxUrl(url)}
+                                showToast={showToast}
+                            />
                         ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center text-gray-500"><i className="fa-solid fa-comments text-5xl mb-4 text-[#008069]/30"></i><h2>Seleziona una chat</h2></div>
+                            <div className="flex-1 flex flex-col items-center justify-center bg-[#f0f2f5] border-l border-gray-200 p-6 text-center">
+                                <div className="w-24 h-24 rounded-full bg-[#008069]/10 flex items-center justify-center mb-4">
+                                    <i className="fa-solid fa-shield-halved text-5xl text-[#008069]"></i>
+                                </div>
+                                <h2 className="text-2xl font-bold text-gray-700">FFchatgram Web & Mobile</h2>
+                                <p className="text-sm text-gray-500 max-w-md mt-2">
+                                    Seleziona una conversazione a sinistra o apri la <b>Rubrica Affiliati</b> per chattare in tempo reale.
+                                </p>
+                            </div>
                         )}
                     </div>
 
-                    {/* MODAL IMPOSTAZIONI */}
+                    {/* ========================================================= */}
+                    {/* MODAL 0: CONDIVIDI LINK D'INVITO (SOLO AMMINISTRATORE)    */}
+                    {/* ========================================================= */}
+                    {modal === 'inviteModal' && isAdmin && (
+                        <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+                            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+                                <div className="bg-[#008069] px-5 py-4 text-white flex items-center justify-between">
+                                    <h3 className="font-bold text-base flex items-center gap-2">
+                                        <i className="fa-solid fa-share-nodes"></i> Invita un Affiliato
+                                    </h3>
+                                    <button onClick={() => setModal(null)} className="text-white/80 hover:text-white cursor-pointer">
+                                        <i className="fa-solid fa-xmark text-lg"></i>
+                                    </button>
+                                </div>
+
+                                <div className="p-5 space-y-4">
+                                    <p className="text-xs text-gray-600 leading-relaxed">
+                                        Invia questo link personale al tuo affiliato. Appena aprirà il link e creerà il suo account, <b>la vostra chat privata si aprirà in automatico</b>!
+                                    </p>
+
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Il tuo Link d'Invito Diretto</label>
+                                        <input
+                                            type="text"
+                                            readOnly
+                                            value={myInviteUrl}
+                                            onClick={(e) => e.target.select()}
+                                            className="w-full px-3 py-2.5 bg-gray-100 border border-gray-300 rounded-xl text-xs font-mono text-gray-800 focus:outline-none select-all"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2.5 pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                copyTextSafe(myInviteUrl);
+                                                showToast("Link puro copiato! Incollalo dove vuoi.");
+                                            }}
+                                            className="w-full bg-[#008069] hover:bg-[#017561] text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 shadow transition cursor-pointer"
+                                        >
+                                            <i className="fa-solid fa-copy"></i> Copia solo il Link
+                                        </button>
+
+                                        <a
+                                            href={"https://wa.me/?text=" + encodeURIComponent("Ciao! Entra nella mia chat privata FFchatgram cliccando su questo link:\n" + myInviteUrl)}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="w-full bg-[#25D366] hover:bg-[#1ebe57] text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 shadow transition cursor-pointer no-underline"
+                                        >
+                                            <i className="fa-brands fa-whatsapp text-base"></i> Invia direttamente su WhatsApp
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ========================================================= */}
+                    {/* MODAL 1: RUBRICA / NUOVA CHAT 1-A-1                       */}
+                    {/* ========================================================= */}
+                    {modal === 'newChat' && (
+                        <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+                            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col max-h-[85vh]">
+                                <div className="bg-[#008069] px-5 py-4 text-white flex items-center justify-between">
+                                    <h3 className="font-bold text-base flex items-center gap-2">
+                                        <i className="fa-solid fa-address-book"></i> Rubrica Affiliati
+                                    </h3>
+                                    <button onClick={() => setModal(null)} className="text-white/80 hover:text-white"><i className="fa-solid fa-xmark text-lg"></i></button>
+                                </div>
+
+                                <div className="p-4 border-b">
+                                    <input
+                                        type="text"
+                                        placeholder="Cerca affiliato per nome..."
+                                        value={contactEmailSearch}
+                                        onChange={e => setContactEmailSearch(e.target.value)}
+                                        className="w-full px-3.5 py-2.5 bg-gray-100 rounded-xl text-sm focus:outline-none"
+                                    />
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto divide-y divide-gray-100 p-2">
+                                    {otherAffiliates
+                                        .filter(u => (u.name || '').toLowerCase().includes(contactEmailSearch.toLowerCase()))
+                                        .map(u => (
+                                            <div key={u.uid} onClick={() => startDirectChatWithUser(u)} className="p-3 hover:bg-gray-50 rounded-xl flex items-center justify-between cursor-pointer transition">
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar name={u.name} photoURL={u.photoURL} size="w-10 h-10" />
+                                                    <div>
+                                                        <div className="font-bold text-sm text-gray-800">{u.name || 'Affiliato'}</div>
+                                                        <div className="text-[11px] text-emerald-600 font-semibold">● Affiliato Verificato</div>
+                                                    </div>
+                                                </div>
+                                                <span className="bg-[#008069]/10 text-[#008069] text-xs font-bold px-3 py-1.5 rounded-lg">Avvia Chat</span>
+                                            </div>
+                                        ))
+                                    }
+                                    {otherAffiliates.length === 0 && (
+                                        <div className="p-6 text-center text-gray-500 text-xs">
+                                            Nessun altro affiliato ancora registrato nella rubrica.
+                                        </div>
+                                    )}
+                                </div>
+
+                                {isAdmin && (
+                                    <div className="p-4 bg-gray-50 border-t flex justify-between items-center">
+                                        <button onClick={handleCopyInvite} className="w-full bg-[#008069] text-white text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer">
+                                            <i className="fa-solid fa-link"></i> Condividi Link d'Invito per Nuovi Affiliati
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ========================================================= */}
+                    {/* MODAL 2: CREA NUOVO GRUPPO                                */}
+                    {/* ========================================================= */}
+                    {modal === 'newGroup' && (
+                        <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+                            <form onSubmit={handleCreateGroup} className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col max-h-[85vh]">
+                                <div className="bg-[#008069] px-5 py-4 text-white flex items-center justify-between">
+                                    <h3 className="font-bold text-base flex items-center gap-2">
+                                        <i className="fa-solid fa-users"></i> Nuovo Gruppo Affiliati
+                                    </h3>
+                                    <button type="button" onClick={() => setModal(null)} className="text-white/80 hover:text-white"><i className="fa-solid fa-xmark text-lg"></i></button>
+                                </div>
+
+                                <div className="p-4 space-y-3 border-b">
+                                    <label className="block text-xs font-bold text-gray-600">Nome del Gruppo</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Es. Team Vendite / Affiliati VIP"
+                                        value={groupName}
+                                        onChange={e => setGroupName(e.target.value)}
+                                        className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-[#008069]"
+                                    />
+                                    <div className="text-xs font-bold text-gray-500 pt-1">Seleziona i partecipanti ({selectedMembers.length} scelti):</div>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto divide-y divide-gray-100 p-2">
+                                    {otherAffiliates.map(u => {
+                                        const checked = selectedMembers.includes(u.uid);
+                                        return (
+                                            <div key={u.uid}
+                                                onClick={() => setSelectedMembers(prev => checked ? prev.filter(id => id !== u.uid) : [...prev, u.uid])}
+                                                className="p-3 hover:bg-gray-50 rounded-xl flex items-center justify-between cursor-pointer"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar name={u.name} photoURL={u.photoURL} size="w-10 h-10" />
+                                                    <span className="font-bold text-sm text-gray-800">{u.name || 'Affiliato'}</span>
+                                                </div>
+                                                <input type="checkbox" checked={checked} readOnly className="w-4 h-4 accent-[#008069]" />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="p-4 bg-gray-50 border-t flex gap-2">
+                                    <button type="button" onClick={() => setModal(null)} className="flex-1 py-2.5 text-xs font-bold text-gray-600 bg-gray-200 rounded-xl">Annulla</button>
+                                    <button type="submit" className="flex-1 py-2.5 text-xs font-bold text-white bg-[#008069] rounded-xl">Crea Gruppo</button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+
+                    {/* ========================================================= */}
+                    {/* MODAL 3: AGGIUNGI MEMBRI A GRUPPO ESISTENTE               */}
+                    {/* ========================================================= */}
+                    {modal === 'addGroupMember' && activeChat && (
+                        <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+                            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col max-h-[85vh]">
+                                <div className="bg-[#008069] px-5 py-4 text-white flex items-center justify-between">
+                                    <h3 className="font-bold text-base">Aggiungi Affiliati a {activeChat.name}</h3>
+                                    <button onClick={() => setModal(null)} className="text-white/80 hover:text-white"><i className="fa-solid fa-xmark text-lg"></i></button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto divide-y divide-gray-100 p-2">
+                                    {otherAffiliates.map(u => {
+                                        const alreadyIn = (activeChat.members || []).includes(u.uid);
+                                        const checked = alreadyIn || selectedMembers.includes(u.uid);
+                                        return (
+                                            <div key={u.uid}
+                                                onClick={() => {
+                                                    if (alreadyIn) return;
+                                                    setSelectedMembers(prev => prev.includes(u.uid) ? prev.filter(id => id !== u.uid) : [...prev, u.uid]);
+                                                }}
+                                                className={"p-3 rounded-xl flex items-center justify-between " + (alreadyIn ? "opacity-50" : "hover:bg-gray-50 cursor-pointer")}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar name={u.name} photoURL={u.photoURL} size="w-10 h-10" />
+                                                    <div>
+                                                        <div className="font-bold text-sm text-gray-800">{u.name}</div>
+                                                        {alreadyIn && <div className="text-[11px] text-gray-400">Già nel gruppo</div>}
+                                                    </div>
+                                                </div>
+                                                <input type="checkbox" checked={checked} disabled={alreadyIn} readOnly className="w-4 h-4 accent-[#008069]" />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="p-4 bg-gray-50 border-t flex gap-2">
+                                    <button onClick={() => setModal(null)} className="flex-1 py-2.5 text-xs font-bold text-gray-600 bg-gray-200 rounded-xl">Chiudi</button>
+                                    <button onClick={handleAddMembersToGroup} className="flex-1 py-2.5 text-xs font-bold text-white bg-[#008069] rounded-xl">Aggiungi Selezionati</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ========================================================= */}
+                    {/* MODAL 4: IMPOSTAZIONI PROFILO, AVATAR & INSTALLAZIONE APP */}
+                    {/* ========================================================= */}
                     {modal === 'settings' && (
                         <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
-                            <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden">
-                                <div className="bg-[#008069] px-5 py-4 text-white flex justify-between">
-                                    <h3 className="font-bold"><i className="fa-solid fa-gear"></i> Impostazioni</h3>
-                                    <button onClick={() => setModal(null)}><i className="fa-solid fa-xmark text-lg"></i></button>
+                            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+                                <div className="bg-[#008069] px-5 py-4 text-white flex items-center justify-between">
+                                    <h3 className="font-bold text-base flex items-center gap-2">
+                                        <i className="fa-solid fa-user-shield"></i> Impostazioni & Privacy
+                                    </h3>
+                                    <button onClick={() => setModal(null)} className="text-white/80 hover:text-white"><i className="fa-solid fa-xmark text-lg"></i></button>
                                 </div>
-                                <div className="p-5 space-y-4">
-                                    
-                                    {/* TASTO INSTALLAZIONE DENTRO LE IMPOSTAZIONI */}
-                                    <button onClick={triggerInstall} className="w-full py-3 bg-emerald-50 hover:bg-emerald-100 text-[#008069] font-bold text-sm rounded-xl border border-emerald-200 flex justify-center items-center gap-2 transition">
-                                        <i className="fa-solid fa-download"></i> Installa l'App sulla Home
-                                    </button>
-                                    
+
+                                <div className="p-5 space-y-5 max-h-[80vh] overflow-y-auto">
+                                    {/* FOTO PROFILO */}
+                                    <div className="flex items-center gap-4">
+                                        <Avatar name={userData?.name} photoURL={userData?.photoURL} size="w-16 h-16" textSize="text-2xl" />
+                                        <div className="flex-1">
+                                            <div className="font-bold text-gray-800">{userData?.name || 'Profilo'}</div>
+                                            <div className="text-xs text-emerald-600 font-semibold mb-2">🔒 Email nascosta per la tua privacy</div>
+                                            <input type="file" accept="image/*" ref={avatarInputRef} onChange={handleAvatarChange} className="hidden" />
+                                            <button
+                                                type="button"
+                                                disabled={uploadingAvatar}
+                                                onClick={() => avatarInputRef.current?.click()}
+                                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer"
+                                            >
+                                                {uploadingAvatar ? 'Caricamento foto...' : '📷 Cambia Foto Profilo'}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* INSTALLA APP SULLA SCHERMATA HOME */}
+                                    {!isStandalone && (
+                                        <div className="border-t pt-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setModal(null); triggerInstall(); }}
+                                                className="w-full py-3 bg-emerald-50 hover:bg-emerald-100 text-[#008069] font-bold text-xs rounded-xl border border-[#008069]/30 flex items-center justify-center gap-2 transition cursor-pointer"
+                                            >
+                                                <i className="fa-solid fa-mobile-screen-button text-sm"></i> Installa FFchatgram sulla Schermata Home
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* CAMBIA NOME */}
+                                    <form onSubmit={handleSaveProfile} className="border-t pt-4 space-y-2">
+                                        <label className="block text-xs font-bold text-gray-600">Il Tuo Nome / Nickname Visibile</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={editName}
+                                                onChange={e => setEditName(e.target.value)}
+                                                className="flex-1 px-3 py-2 border rounded-xl text-sm focus:outline-none focus:border-[#008069]"
+                                            />
+                                            <button type="submit" className="bg-[#008069] text-white text-xs font-bold px-4 rounded-xl">Salva</button>
+                                        </div>
+                                    </form>
+
+                                    {/* CAMBIA PASSWORD */}
+                                    <form onSubmit={handleChangePassword} className="border-t pt-4 space-y-2">
+                                        <label className="block text-xs font-bold text-gray-600">Cambia Password in qualsiasi momento</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="password"
+                                                placeholder="Nuova password (min. 6 car.)"
+                                                value={newPass}
+                                                onChange={e => setNewPass(e.target.value)}
+                                                className="flex-1 px-3 py-2 border rounded-xl text-sm focus:outline-none focus:border-[#008069]"
+                                            />
+                                            <button type="submit" className="bg-blue-600 text-white text-xs font-bold px-4 rounded-xl">Aggiorna</button>
+                                        </div>
+                                    </form>
+
+                                    {/* LOGOUT */}
                                     <div className="border-t pt-4">
-                                        <button onClick={() => window.firebaseMethods.signOut(window.auth)} className="w-full py-2.5 bg-red-50 text-red-600 font-bold text-xs rounded-xl border border-red-200">
-                                            <i className="fa-solid fa-right-from-bracket"></i> Esci dall'Account
+                                        <button
+                                            type="button"
+                                            onClick={() => window.firebaseMethods.signOut(window.auth)}
+                                            className="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs rounded-xl border border-red-200 transition cursor-pointer"
+                                        >
+                                            <i className="fa-solid fa-right-from-bracket mr-1.5"></i> Disconnetti Account (Log Out)
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     )}
-                    
-                    {/* MODAL RUBRICA */}
-                    {modal === 'newChat' && (
-                        <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
-                            <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]">
-                                <div className="bg-[#008069] px-5 py-4 text-white flex justify-between"><h3 className="font-bold">Rubrica</h3><button onClick={() => setModal(null)}><i className="fa-solid fa-xmark"></i></button></div>
-                                <div className="flex-1 overflow-y-auto p-2">
-                                    {otherAffiliates.map(u => (
-                                        <div key={u.uid} onClick={() => startDirectChatWithUser(u)} className="p-3 hover:bg-gray-50 flex items-center gap-3 cursor-pointer">
-                                            <Avatar name={u.name} photoURL={u.photoURL} /><div className="font-bold text-sm">{u.name}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+
+                    {/* ========================================================= */}
+                    {/* LIGHTBOX IMMAGINE A TUTTO SCHERMO                         */}
+                    {/* ========================================================= */}
+                    {lightboxUrl && (
+                        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4" onClick={() => setLightboxUrl(null)}>
+                            <button onClick={() => setLightboxUrl(null)} className="absolute top-5 right-5 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xl">
+                                <i className="fa-solid fa-xmark"></i>
+                            </button>
+                            <img src={lightboxUrl} alt="Ingrandimento" className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" onClick={e => e.stopPropagation()} />
+                            <a href={lightboxUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="mt-4 bg-white/15 hover:bg-white/25 text-white text-xs font-bold px-4 py-2 rounded-full">
+                                <i className="fa-solid fa-up-right-from-square mr-1.5"></i> Apri Originale
+                            </a>
                         </div>
                     )}
 
-                    {lightboxUrl && (
-                        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4" onClick={() => setLightboxUrl(null)}>
-                            <img src={lightboxUrl} className="max-w-full max-h-[85vh] object-contain rounded-lg" onClick={e => e.stopPropagation()} />
-                        </div>
-                    )}
                 </div>
             );
         }
 
-        function ChatRoom({ chat, chatInfo, user, userData, allUsers, onBack, showToast, onOpenLightbox }) {
+        // --- COMPONENTE STANZA CHAT ---
+        const QUICK_EMOJIS = ['👍', '❤️', '😂', '🔥', '🎉', '🙏', '✅', '🚀', '👋', '😎'];
+
+        function ChatRoom({ chat, chatInfo, user, userData, allUsers, isTyping, onBack, onOpenAddMembers, onOpenLightbox, showToast }) {
             const [allMessages, setAllMessages] = useState([]);
+            const [visibleCount, setVisibleCount] = useState(30);
             const [text, setText] = useState('');
-            const fileInputRef = useRef();
+            const [replyTo, setReplyTo] = useState(null);
+            const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+            const [uploadingImg, setUploadingImg] = useState(false);
+            const [showEmojiBar, setShowEmojiBar] = useState(false);
+
             const messagesEndRef = useRef();
+            const fileInputRef = useRef();
+            const lastTypingSentRef = useRef(0);
+            const initialLoadRef = useRef(true);
 
             useEffect(() => {
                 const fm = window.firebaseMethods;
-                const unsub = fm.onSnapshot(fm.query(fm.collection(window.db, "chats", chat.id, "messages"), fm.orderBy("timestamp", "asc")), (snap) => {
-                    setAllMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-                    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-                });
-                return () => unsub();
-            }, [chat.id]);
+                const msgsRef = fm.collection(window.db, "chats", chat.id, "messages");
+                const q = fm.query(msgsRef, fm.orderBy("timestamp", "asc"));
 
-            const handleSend = async (e, imageUrl = '') => {
-                if (e) e.preventDefault();
-                if (!text.trim() && !imageUrl) return;
-                const fm = window.firebaseMethods;
-                const msgText = text.trim(); setText('');
-                await fm.addDoc(fm.collection(window.db, "chats", chat.id, "messages"), {
-                    type: imageUrl ? 'image' : 'text', text: msgText, imageUrl: imageUrl, senderId: user.uid, timestamp: fm.serverTimestamp()
+                const unsub = fm.onSnapshot(q, (snap) => {
+                    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    setAllMessages(list);
+
+                    snap.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            const msgData = change.doc.data();
+                            if (msgData.senderId && msgData.senderId !== user.uid) {
+                                const readBy = msgData.readBy || [];
+                                if (!readBy.includes(user.uid)) {
+                                    fm.updateDoc(fm.doc(window.db, "chats", chat.id, "messages", change.doc.id), {
+                                        readBy: fm.arrayUnion(user.uid)
+                                    }).catch(() => {});
+                                }
+                                if (!initialLoadRef.current) {
+                                    playNotificationSound();
+                                    try {
+                                        if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+                                            new Notification(chatInfo.name, {
+                                                body: msgData.type === 'image' ? '📷 Foto ricevuta' : (msgData.text || 'Nuovo messaggio')
+                                            });
+                                        }
+                                    } catch (e) {}
+                                }
+                            }
+                        }
+                    });
+
+                    if (initialLoadRef.current) {
+                        initialLoadRef.current = false;
+                    }
+                    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
                 });
-                await fm.updateDoc(fm.doc(window.db, "chats", chat.id), { lastMessage: imageUrl ? '📷 Foto' : msgText, updatedAt: fm.serverTimestamp() });
+
+                return () => unsub();
+            }, [chat.id, user.uid]);
+
+            const handleTextChange = (e) => {
+                setText(e.target.value);
+                const now = Date.now();
+                if (now - lastTypingSentRef.current > 2000) {
+                    lastTypingSentRef.current = now;
+                    window.firebaseMethods.updateDoc(window.firebaseMethods.doc(window.db, "chats", chat.id), {
+                        ['typing.' + user.uid]: now
+                    }).catch(() => {});
+                }
+            };
+
+            const sendPayload = async (msgText, type = 'text', imageUrl = '') => {
+                const fm = window.firebaseMethods;
+                const currentReply = replyTo;
+                setText('');
+                setReplyTo(null);
+                setShowEmojiBar(false);
+
+                fm.updateDoc(fm.doc(window.db, "chats", chat.id), {
+                    ['typing.' + user.uid]: 0
+                }).catch(() => {});
+
+                const senderDisplayName = userData?.name || 'Affiliato';
+
+                await fm.addDoc(fm.collection(window.db, "chats", chat.id, "messages"), {
+                    type,
+                    text: msgText || '',
+                    imageUrl: imageUrl || '',
+                    senderId: user.uid,
+                    senderName: senderDisplayName,
+                    readBy: [],
+                    replyToData: currentReply ? {
+                        id: currentReply.id,
+                        senderName: currentReply.senderId === user.uid ? 'Tu' : (currentReply.senderName || chatInfo.name),
+                        text: currentReply.type === 'image' ? '📷 Foto' : (currentReply.text || '')
+                    } : null,
+                    timestamp: fm.serverTimestamp()
+                });
+
+                await fm.updateDoc(fm.doc(window.db, "chats", chat.id), {
+                    lastMessage: type === 'image' ? '📷 Foto' : msgText,
+                    updatedAt: fm.serverTimestamp()
+                });
+            };
+
+            const handleSendForm = async (e) => {
+                e.preventDefault();
+                if (!text.trim()) return;
+                await sendPayload(text.trim(), 'text');
             };
 
             const handleImagePick = async (e) => {
-                const file = e.target.files?.[0]; if (!file) return;
-                try { const url = await uploadImageToImgBB(file); await handleSend(null, url); } 
-                catch (err) { showToast("Errore invio", "error"); }
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setUploadingImg(true);
+                try {
+                    const uploadedUrl = await uploadImageToImgBB(file);
+                    await sendPayload(text.trim(), 'image', uploadedUrl);
+                    showToast("Immagine inviata!");
+                } catch (err) {
+                    showToast("Errore invio immagine: " + err.message, "error");
+                }
+                setUploadingImg(false);
+                e.target.value = null;
             };
 
+            const handleDeleteMessage = async (msgId) => {
+                try {
+                    await window.firebaseMethods.deleteDoc(window.firebaseMethods.doc(window.db, "chats", chat.id, "messages", msgId));
+                    setConfirmDeleteId(null);
+                    showToast("Messaggio eliminato per tutti");
+                } catch (err) {
+                    showToast("Impossibile eliminare il messaggio", "error");
+                }
+            };
+
+            const displayedMessages = allMessages.slice(-visibleCount);
+            const hasMoreMessages = allMessages.length > visibleCount;
+
             return (
-                <div className="flex flex-col h-full w-full relative">
-                    <div className="bg-[#f0f2f5] px-4 py-2.5 flex items-center gap-3 border-b flex-shrink-0 sticky top-0 z-20">
-                        <button onClick={onBack} className="md:hidden text-gray-600 bg-white shadow-sm rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg"><i className="fa-solid fa-arrow-left"></i></button>
-                        <Avatar name={chatInfo.name} photoURL={chatInfo.photoURL} />
-                        <div className="font-bold text-sm truncate">{chatInfo.name}</div>
-                    </div>
+                <div className="flex flex-col h-full w-full relative overflow-hidden">
                     
+                    {/* HEADER DELLA CHAT (SEMPRE FISSO IN ALTO SU SMARTPHONE) */}
+                    <div className="bg-[#f0f2f5] px-3 sm:px-4 py-2.5 flex items-center justify-between border-b border-gray-200 z-20 shadow-sm flex-shrink-0 sticky top-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            <button
+                                type="button"
+                                onClick={onBack}
+                                title="Torna alla lista chat"
+                                className="flex items-center gap-1.5 bg-[#008069]/10 hover:bg-[#008069]/20 text-[#008069] font-bold text-xs px-3 py-1.5 rounded-lg cursor-pointer flex-shrink-0 transition"
+                            >
+                                <i className="fa-solid fa-arrow-left text-sm"></i>
+                                <span>Indietro</span>
+                            </button>
+                            <Avatar name={chatInfo.name} photoURL={chatInfo.photoURL} isGroup={chatInfo.isGroup} size="w-10 h-10" />
+                            <div className="min-w-0">
+                                <div className="font-bold text-gray-900 text-sm truncate">{chatInfo.name}</div>
+                                {isTyping ? (
+                                    <div className="text-xs text-[#00a884] font-bold animate-pulse">sta scrivendo...</div>
+                                ) : (
+                                    <div className="text-[11px] text-gray-500 truncate">
+                                        {chatInfo.isGroup ? ((chat.members?.length || 1) + ' partecipanti nel gruppo') : '● Connessione diretta attiva'}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {chatInfo.isGroup && (
+                            <button
+                                onClick={onOpenAddMembers}
+                                className="bg-[#008069]/10 hover:bg-[#008069]/20 text-[#008069] text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer flex-shrink-0"
+                            >
+                                <i className="fa-solid fa-user-plus"></i>
+                                <span className="hidden sm:inline">Aggiungi Membri</span>
+                            </button>
+                        )}
+                    </div>
+
+                    {/* LISTA MESSAGGI */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
-                        {allMessages.map(msg => {
+                        {hasMoreMessages && (
+                            <div className="text-center pb-2">
+                                <button
+                                    onClick={() => setVisibleCount(prev => prev + 30)}
+                                    className="bg-white/90 hover:bg-white text-gray-700 text-xs font-bold px-4 py-1.5 rounded-full shadow border border-gray-200 transition cursor-pointer"
+                                >
+                                    <i className="fa-solid fa-clock-rotate-left mr-1.5"></i>
+                                    Carica messaggi precedenti (+30)
+                                </button>
+                            </div>
+                        )}
+
+                        {displayedMessages.map(msg => {
                             const isMe = msg.senderId === user.uid;
+                            const isRead = (msg.readBy && msg.readBy.length > 0);
+                            const senderLiveName = allUsers[msg.senderId]?.name || msg.senderName || 'Affiliato';
+                            const timeFormatted = msg.timestamp?.toDate
+                                ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                : '...';
+
                             return (
                                 <div key={msg.id} className={"flex " + (isMe ? "justify-end" : "justify-start")}>
-                                    <div className={"max-w-[85%] px-3 py-2 " + (isMe ? "bubble-out" : "bubble-in")}>
-                                        {msg.type === 'image' && <img src={msg.imageUrl} onClick={() => onOpenLightbox(msg.imageUrl)} className="rounded-lg max-h-60 mb-1 cursor-pointer" />}
-                                        {msg.text && <div className="text-[15px] break-words">{msg.text}</div>}
+                                    <div className={"max-w-[85%] sm:max-w-[70%] px-3 py-2 relative group " + (isMe ? "bubble-out" : "bubble-in")}>
+                                        
+                                        {!isMe && chatInfo.isGroup && (
+                                            <div className="text-xs font-bold text-[#008069] mb-0.5">{senderLiveName}</div>
+                                        )}
+
+                                        {msg.replyToData && (
+                                            <div className="bg-black/5 border-l-4 border-[#008069] px-2.5 py-1.5 mb-1.5 rounded text-xs">
+                                                <div className="font-bold text-[#008069]">{msg.replyToData.senderName}</div>
+                                                <div className="text-gray-600 truncate">{msg.replyToData.text}</div>
+                                            </div>
+                                        )}
+
+                                        {msg.type === 'image' && msg.imageUrl && (
+                                            <div className="mb-1">
+                                                <img
+                                                    src={msg.imageUrl}
+                                                    alt="Allegato"
+                                                    onClick={() => onOpenLightbox(msg.imageUrl)}
+                                                    className="rounded-lg max-h-72 w-auto object-cover cursor-pointer hover:opacity-95 transition border border-black/5"
+                                                />
+                                            </div>
+                                        )}
+
+                                        {msg.text && (
+                                            <div className="text-[15px] text-gray-900 leading-snug break-words whitespace-pre-wrap">{msg.text}</div>
+                                        )}
+
+                                        <div className="flex items-center justify-end gap-2 mt-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => setReplyTo(msg)}
+                                                title="Rispondi"
+                                                className="opacity-60 hover:opacity-100 text-gray-500 hover:text-[#008069] text-[11px] transition cursor-pointer"
+                                            >
+                                                <i className="fa-solid fa-reply"></i>
+                                            </button>
+
+                                            {isMe && (
+                                                confirmDeleteId === msg.id ? (
+                                                    <span className="flex items-center gap-1 bg-red-100 px-1.5 py-0.5 rounded text-[10px]">
+                                                        <button onClick={() => handleDeleteMessage(msg.id)} className="text-red-600 font-bold cursor-pointer">Elimina</button>
+                                                        <span className="text-gray-400">|</span>
+                                                        <button onClick={() => setConfirmDeleteId(null)} className="text-gray-600 cursor-pointer">No</button>
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setConfirmDeleteId(msg.id)}
+                                                        title="Elimina messaggio"
+                                                        className="opacity-60 hover:opacity-100 text-gray-500 hover:text-red-500 text-[11px] transition cursor-pointer"
+                                                    >
+                                                        <i className="fa-solid fa-trash"></i>
+                                                    </button>
+                                                )
+                                            )}
+
+                                            <span className="text-[10px] text-gray-500">{timeFormatted}</span>
+                                            {isMe && (
+                                                <i className={"fa-solid fa-check-double text-[11px] " + (isRead ? "text-[#34B7F1]" : "text-gray-400")} title={isRead ? "Letto" : "Inviato"}></i>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -485,25 +1794,103 @@
                         <div ref={messagesEndRef}></div>
                     </div>
 
-                    <div className="bg-[#f0f2f5] px-3 py-2.5 flex items-center gap-2 border-t">
+                    {/* BARRA DI RISPOSTA CITATA */}
+                    {replyTo && (
+                        <div className="bg-[#f0f2f5] px-4 py-2 border-t border-l-4 border-l-[#008069] flex items-center justify-between flex-shrink-0">
+                            <div className="text-xs min-w-0">
+                                <div className="font-bold text-[#008069]">
+                                    Rispondi a {replyTo.senderId === user.uid ? 'Te stesso' : (replyTo.senderName || chatInfo.name)}
+                                </div>
+                                <div className="text-gray-600 truncate">
+                                    {replyTo.type === 'image' ? '📷 Foto' : replyTo.text}
+                                </div>
+                            </div>
+                            <button onClick={() => setReplyTo(null)} className="text-gray-500 hover:text-gray-800 p-1">
+                                <i className="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* BARRA EMOJI RAPIDE */}
+                    {showEmojiBar && (
+                        <div className="bg-white px-4 py-2 border-t border-gray-200 flex items-center gap-2 overflow-x-auto flex-shrink-0">
+                            {QUICK_EMOJIS.map(em => (
+                                <button
+                                    key={em}
+                                    type="button"
+                                    onClick={() => setText(prev => prev + em)}
+                                    className="text-xl hover:scale-125 transition px-1.5 cursor-pointer"
+                                >
+                                    {em}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* BARRA DI INPUT MESSAGGIO & ALLEGATO FOTO */}
+                    <div className="bg-[#f0f2f5] px-3 py-2.5 flex items-center gap-2 border-t border-gray-200 flex-shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => setShowEmojiBar(prev => !prev)}
+                            className="w-10 h-10 rounded-full text-gray-500 hover:bg-gray-200 flex items-center justify-center transition flex-shrink-0 cursor-pointer"
+                            title="Emoji"
+                        >
+                            <i className="fa-regular fa-face-smile text-xl"></i>
+                        </button>
+
                         <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImagePick} className="hidden" />
-                        <button onClick={() => fileInputRef.current?.click()} className="w-10 h-10 rounded-full text-gray-500 hover:bg-gray-200"><i className="fa-solid fa-paperclip text-lg"></i></button>
-                        <form onSubmit={handleSend} className="flex-1 flex gap-2">
-                            <input type="text" value={text} onChange={e => setText(e.target.value)} placeholder="Scrivi un messaggio..." className="flex-1 bg-white rounded-full px-4 py-2 text-sm outline-none shadow-sm" />
-                            <button type="submit" disabled={!text.trim()} className="w-10 h-10 rounded-full bg-[#008069] text-white disabled:opacity-50"><i className="fa-solid fa-paper-plane"></i></button>
+                        <button
+                            type="button"
+                            disabled={uploadingImg}
+                            onClick={() => fileInputRef.current?.click()}
+                            className="w-10 h-10 rounded-full text-gray-500 hover:bg-gray-200 flex items-center justify-center transition flex-shrink-0 cursor-pointer"
+                            title="Invia Foto da Telefono o PC"
+                        >
+                            {uploadingImg ? (
+                                <div className="w-5 h-5 border-2 border-[#008069] border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                                <i className="fa-solid fa-paperclip text-lg"></i>
+                            )}
+                        </button>
+
+                        <form onSubmit={handleSendForm} className="flex-1 flex items-center gap-2">
+                            <input
+                                type="text"
+                                value={text}
+                                onChange={handleTextChange}
+                                placeholder="Scrivi un messaggio..."
+                                className="flex-1 bg-white rounded-full px-4 py-2.5 text-sm text-gray-800 focus:outline-none shadow-sm"
+                            />
+                            <button
+                                type="submit"
+                                disabled={!text.trim()}
+                                className="w-10 h-10 rounded-full bg-[#008069] hover:bg-[#017561] disabled:opacity-40 text-white flex items-center justify-center shadow transition flex-shrink-0 cursor-pointer"
+                            >
+                                <i className="fa-solid fa-paper-plane text-sm"></i>
+                            </button>
                         </form>
                     </div>
+
                 </div>
             );
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root')); root.render(<App />);
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
-    
+
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(()=>{}); });
-        }
+        try {
+            if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
+                window.addEventListener('load', () => {
+                    try {
+                        navigator.serviceWorker.register('./sw.js').then(reg => {
+                            try { reg.update(); } catch (e) {}
+                        }).catch(() => {});
+                    } catch (e) {}
+                });
+            }
+        } catch (e) {}
     </script>
 </body>
 </html>
