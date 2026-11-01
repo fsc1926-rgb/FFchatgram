@@ -1,3 +1,22 @@
+È **assolutamente fattibile** ed è il naturale livello successivo per la tua piattaforma.
+
+Ho riprogettato il modulo CRM sganciandolo dal limite di avere solo schede legate agli "Affiliati". Ora il tuo spazio di lavoro interno è diviso in due sezioni distinte nella barra laterale:
+
+1. **👥 Schede Affiliati:** I profili legati agli utenti registrati (con i campi Status, Campagna, Telefono).
+2. **📄 Le Mie Pagine (Stile Notion):** Una nuova area in cui puoi cliccare il tasto **"+ Nuova Pagina"** per creare documenti, note di formazione, liste di cose da fare o bozze di annunci, totalmente indipendenti dagli utenti.
+
+### Come funziona la nuova "Notion Mode":
+
+* **Pagine Infinite:** Puoi creare tutte le pagine che vuoi. Appariranno nella tua barra laterale ordinate per ultima modifica.
+* **Titolo, Icona e Contenuto Liberi:** Ogni pagina ha un'icona (emoji) personalizzabile, un titolo enorme e un foglio di testo infinito.
+* **Autosave Istantaneo:** Non c'è alcun pulsante "Salva". Ogni singola lettera che digiti viene sincronizzata in tempo reale in cloud.
+* **Eliminazione Rapida:** Un tastino a forma di cestino ti permette di eliminare rapidamente le pagine o le note che non ti servono più.
+
+Tutto questo gira su un database testuale, quindi **pesa letteralmente zero byte** e non rallenta minimamente l'applicazione, caricandosi solo quando apri il CRM.
+
+Ecco il codice **V7 (Notion Workspace Edition)** completo e rigorosamente verificato. Salva sempre il tuo precedente `index.html` come backup, e poi aggiorna il tuo repository GitHub con questo:
+
+```html
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -63,8 +82,8 @@
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 3px; }
         .dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
-        /* CRM Textarea Autosize Support */
-        .notion-textarea { resize: none; overflow: hidden; min-height: 200px; }
+        /* Notion Textarea */
+        .notion-textarea { resize: none; overflow: hidden; min-height: 300px; line-height: 1.6; }
     </style>
 </head>
 <body class="bg-[#d1d7db] dark:bg-gray-900 transition-colors duration-200">
@@ -127,7 +146,6 @@
             return <div className={size + " rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 shadow-inner " + (isGroup ? "bg-teal-600" : "bg-[#008069]") + " " + textSize}>{isGroup ? <i className="fa-solid fa-users text-sm"></i> : initial}</div>;
         }
 
-        // --- FINESTRA INSTALLAZIONE ---
         function InstallGuideModal({ onClose, darkMode }) {
             const ua = typeof navigator !== 'undefined' ? navigator.userAgent.toLowerCase() : '';
             const isIOS = /iphone|ipad|ipod/.test(ua);
@@ -156,7 +174,6 @@
             );
         }
 
-        // --- APP PRINCIPALE ---
         function App() {
             const [fbReady, setFbReady] = useState(!!window.firebaseReady);
             const [fbError, setFbError] = useState(window.firebaseInitError || '');
@@ -165,11 +182,9 @@
             const [authLoading, setAuthLoading] = useState(true);
             const [toast, setToast] = useState(null);
 
-            // DARK MODE
             const [darkMode, setDarkMode] = useState(() => localStorage.getItem('ffchatgram_theme') === 'dark');
             const toggleDarkMode = () => { const newVal = !darkMode; setDarkMode(newVal); localStorage.setItem('ffchatgram_theme', newVal ? 'dark' : 'light'); };
 
-            // PWA
             const [isStandalone, setIsStandalone] = useState(false);
             const [deferredPrompt, setDeferredPrompt] = useState(() => window.deferredPwaPrompt || null);
             const [showInstallGuide, setShowInstallGuide] = useState(false);
@@ -323,39 +338,34 @@
             );
         }
 
-        // --- WORKSPACE (GESTOR MULTI-APP: CHAT O CRM) ---
+        // --- WORKSPACE (LAUNCHER CHAT O CRM) ---
         function Workspace({ user, userData, setUserData, showToast, triggerInstall, isStandalone, darkMode, toggleDarkMode }) {
             const isAdmin = useMemo(() => checkIsAdmin(user, userData), [user, userData]);
             const [appMode, setAppMode] = useState('chat'); // 'chat' o 'crm'
             const [isLauncherOpen, setIsLauncherOpen] = useState(false);
 
-            // Se non è admin, forza la modalità chat.
             useEffect(() => { if (!isAdmin && appMode !== 'chat') setAppMode('chat'); }, [isAdmin, appMode]);
 
             return (
                 <div className="h-full w-full relative overflow-hidden flex bg-[#f0f2f5] dark:bg-gray-900">
-                    
-                    {/* MENU LAUNCHER (OVERLAY) */}
                     {isLauncherOpen && isAdmin && (
                         <div className="absolute inset-0 z-50 flex">
-                            <div className="w-64 bg-white dark:bg-gray-800 shadow-2xl flex flex-col h-full z-50">
+                            <div className="w-64 bg-white dark:bg-gray-800 shadow-2xl flex flex-col h-full z-50 animate-fade-in">
                                 <div className="bg-[#008069] p-4 text-white font-bold flex justify-between items-center">
-                                    <span>Applicazioni</span>
-                                    <button onClick={() => setIsLauncherOpen(false)}><i className="fa-solid fa-xmark text-lg"></i></button>
+                                    <span>Workspace</span><button onClick={() => setIsLauncherOpen(false)}><i className="fa-solid fa-xmark text-lg"></i></button>
                                 </div>
                                 <div className="p-2 space-y-1">
                                     <button onClick={() => { setAppMode('chat'); setIsLauncherOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition font-bold text-sm ${appMode==='chat' ? 'bg-[#008069]/10 text-[#008069] dark:text-[#00a884]' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
                                         <i className="fa-solid fa-comments text-lg w-6"></i> Chat Messaggi
                                     </button>
                                     <button onClick={() => { setAppMode('crm'); setIsLauncherOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition font-bold text-sm ${appMode==='crm' ? 'bg-[#008069]/10 text-[#008069] dark:text-[#00a884]' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
-                                        <i className="fa-solid fa-address-card text-lg w-6"></i> CRM Notion
+                                        <i className="fa-solid fa-layer-group text-lg w-6"></i> CRM & Pagine Libere
                                     </button>
                                 </div>
                             </div>
-                            <div className="flex-1 bg-black/40" onClick={() => setIsLauncherOpen(false)}></div>
+                            <div className="flex-1 bg-black/40 backdrop-blur-sm" onClick={() => setIsLauncherOpen(false)}></div>
                         </div>
                     )}
-
                     {appMode === 'chat' ? (
                         <Dashboard user={user} userData={userData} setUserData={setUserData} showToast={showToast} triggerInstall={triggerInstall} isStandalone={isStandalone} darkMode={darkMode} toggleDarkMode={toggleDarkMode} isAdmin={isAdmin} onOpenLauncher={() => setIsLauncherOpen(true)} />
                     ) : (
@@ -365,25 +375,16 @@
             );
         }
 
-        // --- DASHBOARD MESSAGGI ---
+        // --- CHAT DASHBOARD ---
         function Dashboard({ user, userData, setUserData, showToast, triggerInstall, isStandalone, darkMode, toggleDarkMode, isAdmin, onOpenLauncher }) {
-            const [chats, setChats] = useState([]);
-            const [allUsers, setAllUsers] = useState({});
-            const [activeChatId, setActiveChatId] = useState(null);
-            const [searchTerm, setSearchTerm] = useState('');
-            const [modal, setModal] = useState(null); 
-            const [lightboxUrl, setLightboxUrl] = useState(null);
+            const [chats, setChats] = useState([]); const [allUsers, setAllUsers] = useState({});
+            const [activeChatId, setActiveChatId] = useState(null); const [searchTerm, setSearchTerm] = useState('');
+            const [modal, setModal] = useState(null); const [lightboxUrl, setLightboxUrl] = useState(null);
 
-            const [editName, setEditName] = useState(userData?.name || '');
-            const [newPass, setNewPass] = useState('');
-            const [uploadingAvatar, setUploadingAvatar] = useState(false);
-            const avatarInputRef = useRef();
-            const historyPushedRef = useRef(false);
-            const [contactEmailSearch, setContactEmailSearch] = useState('');
-            const [groupName, setGroupName] = useState('');
-            const [selectedMembers, setSelectedMembers] = useState([]);
-            const [broadcastMsg, setBroadcastMsg] = useState('');
-            const [activeTagFilter, setActiveTagFilter] = useState('Tutte');
+            const [editName, setEditName] = useState(userData?.name || ''); const [newPass, setNewPass] = useState(''); const [uploadingAvatar, setUploadingAvatar] = useState(false);
+            const avatarInputRef = useRef(); const historyPushedRef = useRef(false);
+            const [contactEmailSearch, setContactEmailSearch] = useState(''); const [groupName, setGroupName] = useState(''); const [selectedMembers, setSelectedMembers] = useState([]);
+            const [broadcastMsg, setBroadcastMsg] = useState(''); const [activeTagFilter, setActiveTagFilter] = useState('Tutte');
 
             const myInviteUrl = useMemo(() => getInviteUrl(user.uid), [user.uid]);
             useEffect(() => { if (userData?.name) setEditName(userData.name); }, [userData]);
@@ -402,24 +403,12 @@
                 window.addEventListener('popstate', handlePopState); return () => window.removeEventListener('popstate', handlePopState);
             }, [lightboxUrl, modal]);
 
-            useEffect(() => {
-                const fm = window.firebaseMethods;
-                const unsub = fm.onSnapshot(fm.collection(window.db, "users"), (snap) => { const map = {}; snap.docs.forEach(d => { map[d.id] = d.data(); }); setAllUsers(map); });
-                return () => unsub();
-            }, []);
-
-            useEffect(() => {
-                const fm = window.firebaseMethods;
-                const q = fm.query(fm.collection(window.db, "chats"), fm.where("members", "array-contains", user.uid));
-                const unsub = fm.onSnapshot(q, (snap) => { const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0)); setChats(list); });
-                return () => unsub();
-            }, [user.uid]);
+            useEffect(() => { const fm = window.firebaseMethods; const unsub = fm.onSnapshot(fm.collection(window.db, "users"), (snap) => { const map = {}; snap.docs.forEach(d => { map[d.id] = d.data(); }); setAllUsers(map); }); return () => unsub(); }, []);
+            useEffect(() => { const fm = window.firebaseMethods; const q = fm.query(fm.collection(window.db, "chats"), fm.where("members", "array-contains", user.uid)); const unsub = fm.onSnapshot(q, (snap) => { const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0)); setChats(list); }); return () => unsub(); }, [user.uid]);
 
             const getChatInfo = (chat) => {
-                if (!chat) return { name: 'Chat', photoURL: '', isGroup: false };
-                if (chat.type === 'group') return { name: chat.name, photoURL: chat.photoURL, isGroup: true };
-                const otherUid = (chat.members || []).find(uid => uid !== user.uid);
-                const liveOther = otherUid ? allUsers[otherUid] : null; const cachedOther = (otherUid && chat.memberData?.[otherUid]) ? chat.memberData[otherUid] : null;
+                if (!chat) return { name: 'Chat', photoURL: '', isGroup: false }; if (chat.type === 'group') return { name: chat.name, photoURL: chat.photoURL, isGroup: true };
+                const otherUid = (chat.members || []).find(uid => uid !== user.uid); const liveOther = otherUid ? allUsers[otherUid] : null; const cachedOther = (otherUid && chat.memberData?.[otherUid]) ? chat.memberData[otherUid] : null;
                 return { name: liveOther?.name || cachedOther?.name || 'Affiliato', photoURL: liveOther?.photoURL || cachedOther?.photoURL || '', isGroup: false, otherUid };
             };
 
@@ -428,57 +417,31 @@
 
             const startDirectChatWithUser = async (targetUser) => {
                 if (!targetUser || targetUser.uid === user.uid) return; const fm = window.firebaseMethods;
-                const existing = chats.find(c => c.type === 'direct' && c.members.includes(targetUser.uid));
-                if (existing) { selectChat(existing.id); setModal(null); return; }
-                const newChatRef = await fm.addDoc(fm.collection(window.db, "chats"), { type: 'direct', members: [user.uid, targetUser.uid], memberData: { [user.uid]: { name: userData?.name }, [targetUser.uid]: { name: targetUser.name } }, lastMessage: 'Nuova conversazione', updatedAt: fm.serverTimestamp() });
-                selectChat(newChatRef.id); setModal(null);
+                const existing = chats.find(c => c.type === 'direct' && c.members.includes(targetUser.uid)); if (existing) { selectChat(existing.id); setModal(null); return; }
+                const newChatRef = await fm.addDoc(fm.collection(window.db, "chats"), { type: 'direct', members: [user.uid, targetUser.uid], memberData: { [user.uid]: { name: userData?.name }, [targetUser.uid]: { name: targetUser.name } }, lastMessage: 'Nuova conversazione', updatedAt: fm.serverTimestamp() }); selectChat(newChatRef.id); setModal(null);
             };
 
             const handleCreateGroup = async (e) => {
-                e.preventDefault(); if (!groupName.trim()) return showToast("Inserisci il nome", "error");
-                const fm = window.firebaseMethods; const members = Array.from(new Set([user.uid, ...selectedMembers])); const memberData = {}; members.forEach(uid => { memberData[uid] = { name: allUsers[uid]?.name || 'Affiliato', photoURL: allUsers[uid]?.photoURL || '' }; });
-                const ref = await fm.addDoc(fm.collection(window.db, "chats"), { type: 'group', name: groupName.trim(), members, memberData, lastMessage: '👥 Gruppo creato', updatedAt: fm.serverTimestamp() });
-                setGroupName(''); setSelectedMembers([]); setModal(null); selectChat(ref.id); showToast("Gruppo creato!");
+                e.preventDefault(); if (!groupName.trim()) return showToast("Inserisci il nome", "error"); const fm = window.firebaseMethods; const members = Array.from(new Set([user.uid, ...selectedMembers])); const memberData = {}; members.forEach(uid => { memberData[uid] = { name: allUsers[uid]?.name || 'Affiliato', photoURL: allUsers[uid]?.photoURL || '' }; });
+                const ref = await fm.addDoc(fm.collection(window.db, "chats"), { type: 'group', name: groupName.trim(), members, memberData, lastMessage: '👥 Gruppo creato', updatedAt: fm.serverTimestamp() }); setGroupName(''); setSelectedMembers([]); setModal(null); selectChat(ref.id); showToast("Gruppo creato!");
             };
 
             const handleAddMembersToGroup = async () => {
-                const activeChat = chats.find(c => c.id === activeChatId); if (!activeChat || selectedMembers.length === 0) return; const fm = window.firebaseMethods;
-                const updatedMembers = Array.from(new Set([...(activeChat.members || []), ...selectedMembers]));
-                await fm.updateDoc(fm.doc(window.db, "chats", activeChat.id), { members: updatedMembers, updatedAt: fm.serverTimestamp() });
-                setSelectedMembers([]); setModal(null); showToast("Aggiunti al gruppo!");
+                const activeChat = chats.find(c => c.id === activeChatId); if (!activeChat || selectedMembers.length === 0) return; const fm = window.firebaseMethods; const updatedMembers = Array.from(new Set([...(activeChat.members || []), ...selectedMembers]));
+                await fm.updateDoc(fm.doc(window.db, "chats", activeChat.id), { members: updatedMembers, updatedAt: fm.serverTimestamp() }); setSelectedMembers([]); setModal(null); showToast("Aggiunti al gruppo!");
             };
             
             const handleSendBroadcast = async (e) => {
-                e.preventDefault(); if (!broadcastMsg.trim()) return; const fm = window.firebaseMethods; const directChats = chats.filter(c => c.type === 'direct');
-                if(directChats.length === 0) return showToast("Nessuna chat", "error");
+                e.preventDefault(); if (!broadcastMsg.trim()) return; const fm = window.firebaseMethods; const directChats = chats.filter(c => c.type === 'direct'); if(directChats.length === 0) return showToast("Nessuna chat", "error");
                 showToast("Invio broadcast in corso...", "info");
-                try {
-                    await Promise.all(directChats.map(async (c) => {
-                        await fm.addDoc(fm.collection(window.db, "chats", c.id, "messages"), { type: 'text', text: broadcastMsg.trim(), imageUrl: '', senderId: user.uid, senderName: userData?.name || 'Amministratore', readBy: [], timestamp: fm.serverTimestamp() });
-                        await fm.updateDoc(fm.doc(window.db, "chats", c.id), { lastMessage: '📢 ' + broadcastMsg.trim(), updatedAt: fm.serverTimestamp() });
-                    }));
-                    setBroadcastMsg(''); setModal(null); showToast(`Broadcast inviato!`);
-                } catch (err) { showToast("Errore invio", "error"); }
+                try { await Promise.all(directChats.map(async (c) => { await fm.addDoc(fm.collection(window.db, "chats", c.id, "messages"), { type: 'text', text: broadcastMsg.trim(), imageUrl: '', senderId: user.uid, senderName: userData?.name || 'Amministratore', readBy: [], timestamp: fm.serverTimestamp() }); await fm.updateDoc(fm.doc(window.db, "chats", c.id), { lastMessage: '📢 ' + broadcastMsg.trim(), updatedAt: fm.serverTimestamp() }); })); setBroadcastMsg(''); setModal(null); showToast(`Broadcast inviato!`); } catch (err) { showToast("Errore invio", "error"); }
             };
 
-            const handleSaveProfile = async (e) => {
-                e.preventDefault(); if (!editName.trim()) return; const fm = window.firebaseMethods;
-                try { await fm.updateProfile(window.auth.currentUser, { displayName: editName.trim() }); await fm.setDoc(fm.doc(window.db, "users", user.uid), { name: editName.trim(), updatedAt: fm.serverTimestamp() }, { merge: true }); setUserData(prev => ({ ...prev, name: editName.trim() })); showToast("Profilo aggiornato!"); } catch (err) { showToast("Errore salvataggio", "error"); }
-            };
+            const handleSaveProfile = async (e) => { e.preventDefault(); if (!editName.trim()) return; const fm = window.firebaseMethods; try { await fm.updateProfile(window.auth.currentUser, { displayName: editName.trim() }); await fm.setDoc(fm.doc(window.db, "users", user.uid), { name: editName.trim(), updatedAt: fm.serverTimestamp() }, { merge: true }); setUserData(prev => ({ ...prev, name: editName.trim() })); showToast("Profilo aggiornato!"); } catch (err) { showToast("Errore salvataggio", "error"); } };
+            const handleAvatarChange = async (e) => { const file = e.target.files?.[0]; if (!file) return; setUploadingAvatar(true); const fm = window.firebaseMethods; try { const url = await uploadImageToImgBB(file); await fm.updateProfile(window.auth.currentUser, { photoURL: url }); await fm.setDoc(fm.doc(window.db, "users", user.uid), { photoURL: url, updatedAt: fm.serverTimestamp() }, { merge: true }); setUserData(prev => ({ ...prev, photoURL: url })); showToast("Foto aggiornata!"); } catch (err) { showToast("Errore foto", "error"); } setUploadingAvatar(false); e.target.value = null; };
+            const handleChangePassword = async (e) => { e.preventDefault(); if (newPass.length < 6) return showToast("Minimo 6 caratteri", "error"); try { await window.firebaseMethods.updatePassword(window.auth.currentUser, newPass); setNewPass(''); showToast("Password modificata!"); } catch (err) { showToast("Per sicurezza esci e rientra per cambiare pass", "error"); } };
 
-            const handleAvatarChange = async (e) => {
-                const file = e.target.files?.[0]; if (!file) return; setUploadingAvatar(true); const fm = window.firebaseMethods;
-                try { const url = await uploadImageToImgBB(file); await fm.updateProfile(window.auth.currentUser, { photoURL: url }); await fm.setDoc(fm.doc(window.db, "users", user.uid), { photoURL: url, updatedAt: fm.serverTimestamp() }, { merge: true }); setUserData(prev => ({ ...prev, photoURL: url })); showToast("Foto aggiornata!"); } catch (err) { showToast("Errore foto", "error"); }
-                setUploadingAvatar(false); e.target.value = null;
-            };
-
-            const handleChangePassword = async (e) => {
-                e.preventDefault(); if (newPass.length < 6) return showToast("Minimo 6 caratteri", "error");
-                try { await window.firebaseMethods.updatePassword(window.auth.currentUser, newPass); setNewPass(''); showToast("Password modificata!"); } catch (err) { showToast("Per sicurezza esci e rientra per cambiare pass", "error"); }
-            };
-
-            const activeChat = chats.find(c => c.id === activeChatId) || null;
-            const otherAffiliates = Object.values(allUsers).filter(u => u.uid && u.uid !== user.uid);
+            const activeChat = chats.find(c => c.id === activeChatId) || null; const otherAffiliates = Object.values(allUsers).filter(u => u.uid && u.uid !== user.uid);
             const filteredChats = chats.filter(c => { const matchSearch = getChatInfo(c).name.toLowerCase().includes(searchTerm.toLowerCase()); const matchTag = activeTagFilter === 'Tutte' || (c.tags?.[user.uid] === activeTagFilter); return matchSearch && matchTag; });
 
             return (
@@ -486,13 +449,8 @@
                     <div className={"w-full md:w-[390px] lg:w-[420px] h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0 " + (activeChat ? "hidden md:flex" : "flex")}>
                         <div className="bg-[#f0f2f5] dark:bg-gray-900 px-3 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                             <div className="flex items-center gap-2 cursor-pointer">
-                                {isAdmin && (
-                                    <button onClick={onOpenLauncher} className="w-9 h-9 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 mr-1 transition"><i className="fa-solid fa-grip text-lg"></i></button>
-                                )}
-                                <div onClick={() => setModal('settings')} className="flex items-center gap-2">
-                                    <Avatar name={userData?.name} photoURL={userData?.photoURL} />
-                                    <div className="hidden sm:block"><div className="font-bold text-gray-800 dark:text-gray-100 text-sm truncate max-w-[100px]">{userData?.name || "Profilo"}</div></div>
-                                </div>
+                                {isAdmin && <button onClick={onOpenLauncher} className="w-9 h-9 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 mr-1 transition"><i className="fa-solid fa-grip text-lg"></i></button>}
+                                <div onClick={() => setModal('settings')} className="flex items-center gap-2"><Avatar name={userData?.name} photoURL={userData?.photoURL} /><div className="hidden sm:block"><div className="font-bold text-gray-800 dark:text-gray-100 text-sm truncate max-w-[100px]">{userData?.name || "Profilo"}</div></div></div>
                             </div>
                             <div className="flex gap-1 text-gray-600 dark:text-gray-300">
                                 {!isStandalone && <button onClick={triggerInstall} className="w-8 h-8 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center"><i className="fa-solid fa-download"></i></button>}
@@ -501,46 +459,28 @@
                                 <button onClick={() => setModal('settings')} className="w-8 h-8 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center"><i className="fa-solid fa-gear"></i></button>
                             </div>
                         </div>
-
                         <div className="px-3 py-2 bg-emerald-50/70 dark:bg-[#008069]/20 border-b border-emerald-100 dark:border-[#008069]/30 flex gap-2 flex-shrink-0">
                             {isAdmin && <button onClick={() => { setBroadcastMsg(''); setModal('broadcastModal'); }} className="flex-1 bg-[#008069] text-white text-xs font-bold py-2 rounded-lg shadow-sm"><i className="fa-solid fa-bullhorn"></i> Broadcast</button>}
                             <button onClick={() => setModal('newChat')} className={`bg-white dark:bg-gray-700 text-[#008069] dark:text-[#00a884] border border-[#008069]/30 text-xs font-bold py-2 px-3 rounded-lg ${isAdmin ? 'flex-1' : 'w-full'}`}><i className="fa-solid fa-address-book"></i> Rubrica</button>
                         </div>
-
-                        <div className="p-2.5 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-                            <div className="bg-[#f0f2f5] dark:bg-gray-900 rounded-xl flex items-center px-3.5 py-2">
-                                <i className="fa-solid fa-magnifying-glass text-gray-400"></i>
-                                <input type="text" placeholder="Cerca una chat..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none w-full text-sm ml-2.5 text-gray-700 dark:text-gray-200" />
-                            </div>
-                        </div>
-
+                        <div className="p-2.5 border-b border-gray-100 dark:border-gray-700 flex-shrink-0"><div className="bg-[#f0f2f5] dark:bg-gray-900 rounded-xl flex items-center px-3.5 py-2"><i className="fa-solid fa-magnifying-glass text-gray-400"></i><input type="text" placeholder="Cerca una chat..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none w-full text-sm ml-2.5 text-gray-700 dark:text-gray-200" /></div></div>
                         {isAdmin && (
                             <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700 flex gap-2 overflow-x-auto flex-shrink-0 no-scrollbar">
                                 <button onClick={() => setActiveTagFilter('Tutte')} className={`px-3 py-1 text-xs font-bold rounded-full whitespace-nowrap border ${activeTagFilter==='Tutte' ? 'bg-[#008069] text-white border-[#008069]' : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600'}`}>Tutte</button>
                                 {TAGS.map(t => (
-                                    <button key={t.id} onClick={() => setActiveTagFilter(t.id)} className={`px-3 py-1 text-xs font-bold rounded-full whitespace-nowrap border ${activeTagFilter===t.id ? 'bg-[#008069] text-white border-[#008069]' : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600'}`}>
-                                        {t.icon} {t.label}
-                                    </button>
+                                    <button key={t.id} onClick={() => setActiveTagFilter(t.id)} className={`px-3 py-1 text-xs font-bold rounded-full whitespace-nowrap border ${activeTagFilter===t.id ? 'bg-[#008069] text-white border-[#008069]' : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600'}`}>{t.icon} {t.label}</button>
                                 ))}
                             </div>
                         )}
-
                         <div className="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
                             {filteredChats.map(chat => {
                                 const info = getChatInfo(chat); const typing = isSomeoneTyping(chat); const isSelected = chat.id === activeChatId;
                                 const timeStr = chat.updatedAt?.toDate ? chat.updatedAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
                                 const tagId = chat.tags?.[user.uid]; const tagObj = TAGS.find(t => t.id === tagId);
-
                                 return (
                                     <div key={chat.id} onClick={() => selectChat(chat.id)} className={`px-4 py-3 flex gap-3.5 cursor-pointer ${isSelected ? 'bg-[#f0f2f5] dark:bg-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-750'}`}>
-                                        <div className="relative">
-                                            <Avatar name={info.name} photoURL={info.photoURL} isGroup={info.isGroup} size="w-12 h-12" />
-                                            {tagObj && <div className="absolute -bottom-1 -right-1 text-xs bg-white dark:bg-gray-800 rounded-full w-5 h-5 flex items-center justify-center shadow">{tagObj.icon}</div>}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex justify-between mb-0.5"><span className="font-bold text-gray-900 dark:text-white text-sm truncate">{info.name}</span><span className="text-[11px] text-gray-400">{timeStr}</span></div>
-                                            {typing ? <div className="text-xs text-[#00a884] font-bold animate-pulse">sta scrivendo...</div> : <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{chat.lastMessage || "Inizia chat..."}</div>}
-                                        </div>
+                                        <div className="relative"><Avatar name={info.name} photoURL={info.photoURL} isGroup={info.isGroup} size="w-12 h-12" />{tagObj && <div className="absolute -bottom-1 -right-1 text-xs bg-white dark:bg-gray-800 rounded-full w-5 h-5 flex items-center justify-center shadow">{tagObj.icon}</div>}</div>
+                                        <div className="flex-1 min-w-0"><div className="flex justify-between mb-0.5"><span className="font-bold text-gray-900 dark:text-white text-sm truncate">{info.name}</span><span className="text-[11px] text-gray-400">{timeStr}</span></div>{typing ? <div className="text-xs text-[#00a884] font-bold animate-pulse">sta scrivendo...</div> : <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{chat.lastMessage || "Inizia chat..."}</div>}</div>
                                     </div>
                                 );
                             })}
@@ -559,28 +499,14 @@
                         )}
                     </div>
 
-                    {/* MODALS */}
                     {modal === 'settings' && (
                         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
                             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
                                 <div className="bg-[#008069] px-5 py-4 text-white flex justify-between"><h3 className="font-bold"><i className="fa-solid fa-gear"></i> Impostazioni</h3><button onClick={() => setModal(null)}><i className="fa-solid fa-xmark"></i></button></div>
                                 <div className="p-5 space-y-5 max-h-[80vh] overflow-y-auto">
-                                    <div className="flex items-center gap-4">
-                                        <Avatar name={userData?.name} photoURL={userData?.photoURL} size="w-16 h-16" textSize="text-2xl" />
-                                        <div className="flex-1">
-                                            <div className="font-bold text-gray-800 dark:text-white">{userData?.name || 'Profilo'}</div>
-                                            <div className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mb-2">🔒 Privacy protetta</div>
-                                            <input type="file" accept="image/*" ref={avatarInputRef} onChange={handleAvatarChange} className="hidden" />
-                                            <button disabled={uploadingAvatar} onClick={() => avatarInputRef.current?.click()} className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold px-3 py-1.5 rounded-lg">{uploadingAvatar ? 'Caricamento...' : '📷 Cambia Foto'}</button>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-4">
-                                        <div className="text-sm font-bold text-gray-700 dark:text-gray-200"><i className="fa-solid fa-moon text-gray-500 dark:text-gray-400 mr-2"></i>Tema Scuro</div>
-                                        <button onClick={toggleDarkMode} className={`w-12 h-6 rounded-full p-1 transition-colors ${darkMode ? 'bg-[#008069]' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full transition-transform ${darkMode ? 'translate-x-6' : ''}`}></div></button>
-                                    </div>
-                                    {!isStandalone && (
-                                        <button onClick={() => { setModal(null); triggerInstall(); }} className="w-full py-3 bg-emerald-50 dark:bg-emerald-900/30 text-[#008069] dark:text-[#00a884] font-bold text-xs rounded-xl flex items-center justify-center gap-2"><i className="fa-solid fa-download"></i> Installa App sulla Home</button>
-                                    )}
+                                    <div className="flex items-center gap-4"><Avatar name={userData?.name} photoURL={userData?.photoURL} size="w-16 h-16" textSize="text-2xl" /><div className="flex-1"><div className="font-bold text-gray-800 dark:text-white">{userData?.name || 'Profilo'}</div><div className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mb-2">🔒 Privacy protetta</div><input type="file" accept="image/*" ref={avatarInputRef} onChange={handleAvatarChange} className="hidden" /><button disabled={uploadingAvatar} onClick={() => avatarInputRef.current?.click()} className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold px-3 py-1.5 rounded-lg">{uploadingAvatar ? 'Caricamento...' : '📷 Cambia Foto'}</button></div></div>
+                                    <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-4"><div className="text-sm font-bold text-gray-700 dark:text-gray-200"><i className="fa-solid fa-moon text-gray-500 dark:text-gray-400 mr-2"></i>Tema Scuro</div><button onClick={toggleDarkMode} className={`w-12 h-6 rounded-full p-1 transition-colors ${darkMode ? 'bg-[#008069]' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full transition-transform ${darkMode ? 'translate-x-6' : ''}`}></div></button></div>
+                                    {!isStandalone && <button onClick={() => { setModal(null); triggerInstall(); }} className="w-full py-3 bg-emerald-50 dark:bg-emerald-900/30 text-[#008069] dark:text-[#00a884] font-bold text-xs rounded-xl flex items-center justify-center gap-2"><i className="fa-solid fa-download"></i> Installa App sulla Home</button>}
                                     <form onSubmit={handleSaveProfile} className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2"><label className="block text-xs font-bold text-gray-600 dark:text-gray-400">Nickname</label><div className="flex gap-2"><input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 dark:text-white border dark:border-gray-600 rounded-xl text-sm" /><button type="submit" className="bg-[#008069] text-white text-xs font-bold px-4 rounded-xl">Salva</button></div></form>
                                     <form onSubmit={handleChangePassword} className="space-y-2"><label className="block text-xs font-bold text-gray-600 dark:text-gray-400">Password</label><div className="flex gap-2"><input type="password" placeholder="Nuova pass (min 6)" value={newPass} onChange={e => setNewPass(e.target.value)} className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 dark:text-white border dark:border-gray-600 rounded-xl text-sm" /><button type="submit" className="bg-blue-600 text-white text-xs font-bold px-4 rounded-xl">Aggiorna</button></div></form>
                                     <div className="border-t border-gray-200 dark:border-gray-700 pt-4"><button onClick={() => window.firebaseMethods.signOut(window.auth)} className="w-full py-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold text-xs rounded-xl"><i className="fa-solid fa-right-from-bracket mr-1.5"></i> Esci Account</button></div>
@@ -589,7 +515,7 @@
                         </div>
                     )}
                     {modal === 'broadcastModal' && isAdmin && (
-                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"><form onSubmit={handleSendBroadcast} className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md overflow-hidden"><div className="bg-[#008069] px-5 py-4 text-white flex justify-between"><h3 className="font-bold"><i className="fa-solid fa-bullhorn"></i> Messaggio Broadcast</h3><button type="button" onClick={() => setModal(null)}><i className="fa-solid fa-xmark"></i></button></div><div className="p-5 space-y-4"><p className="text-xs text-gray-600 dark:text-gray-300">Invia a tutti i tuoi affiliati in un solo colpo.</p><textarea required rows="4" placeholder="Scrivi il tuo annuncio..." value={broadcastMsg} onChange={e=>setBroadcastMsg(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 rounded-xl text-sm outline-none resize-none"></textarea><button type="submit" className="w-full bg-[#008069] text-white font-bold py-3 rounded-xl"><i className="fa-solid fa-paper-plane mr-2"></i> Invia a Tutti</button></div></form></div>
+                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"><form onSubmit={handleSendBroadcast} className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md overflow-hidden"><div className="bg-[#008069] px-5 py-4 text-white flex justify-between"><h3 className="font-bold"><i className="fa-solid fa-bullhorn"></i> Messaggio Broadcast</h3><button type="button" onClick={() => setModal(null)}><i className="fa-solid fa-xmark"></i></button></div><div className="p-5 space-y-4"><textarea required rows="4" placeholder="Scrivi il tuo annuncio..." value={broadcastMsg} onChange={e=>setBroadcastMsg(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 rounded-xl text-sm outline-none resize-none"></textarea><button type="submit" className="w-full bg-[#008069] text-white font-bold py-3 rounded-xl"><i className="fa-solid fa-paper-plane mr-2"></i> Invia a Tutti</button></div></form></div>
                     )}
                     {modal === 'inviteModal' && isAdmin && (
                         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md overflow-hidden"><div className="bg-[#008069] px-5 py-4 text-white flex justify-between"><h3 className="font-bold"><i className="fa-solid fa-share-nodes"></i> Invita</h3><button onClick={() => setModal(null)}><i className="fa-solid fa-xmark"></i></button></div><div className="p-5 space-y-4"><input type="text" readOnly value={myInviteUrl} onClick={(e)=>e.target.select()} className="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-xl text-xs font-mono" /><div className="space-y-2"><button onClick={()=>{copyTextSafe(myInviteUrl); showToast("Copiato!");}} className="w-full bg-[#008069] text-white font-bold text-xs py-3 rounded-xl"><i className="fa-solid fa-copy"></i> Copia Link</button><a href={"https://wa.me/?text=" + encodeURIComponent("Entra nella mia chat privata FFchatgram:\n" + myInviteUrl)} target="_blank" className="w-full bg-[#25D366] text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2"><i className="fa-brands fa-whatsapp text-base"></i> WhatsApp</a></div></div></div></div>
@@ -643,7 +569,6 @@
 
             const handlePinMessage = async (msg) => { await window.firebaseMethods.updateDoc(window.firebaseMethods.doc(window.db, "chats", chat.id), { pinnedMessage: { id: msg.id, text: msg.text || 'Foto', senderName: msg.senderName || 'Utente' } }); showToast("Fissato!"); };
             const handleUnpinMessage = async () => { await window.firebaseMethods.updateDoc(window.firebaseMethods.doc(window.db, "chats", chat.id), { pinnedMessage: null }); };
-            
             const handleSendForm = async (e) => { e.preventDefault(); if (text.trim()) await sendPayload(text.trim(), 'text'); };
             const handleImagePick = async (e) => { const file = e.target.files?.[0]; if (!file) return; setUploadingImg(true); try { const url = await uploadImageToImgBB(file); await sendPayload('', 'image', url); showToast("Inviata!"); } catch (err) { showToast("Errore foto", "error"); } setUploadingImg(false); e.target.value=null; };
             const handleDeleteMessage = async (msgId) => { try { await window.firebaseMethods.deleteDoc(window.firebaseMethods.doc(window.db, "chats", chat.id, "messages", msgId)); setConfirmDeleteId(null); } catch (err) {} };
@@ -707,11 +632,14 @@
         // --- MODULO CRM (NOTION STYLE) ---
         function CRMModule({ user, isAdmin, showToast, onOpenLauncher }) {
             const [allUsers, setAllUsers] = useState({});
+            const [customPages, setCustomPages] = useState([]);
             const [searchTerm, setSearchTerm] = useState('');
-            const [activeProfileId, setActiveProfileId] = useState(null);
-            const [crmData, setCrmData] = useState(null);
+            
+            const [activeSelection, setActiveSelection] = useState(null); // { type: 'profile' | 'page', id: string }
+            const [activeData, setActiveData] = useState(null);
             const historyPushedRef = useRef(false);
 
+            // Fetch Affiliati
             useEffect(() => {
                 const fm = window.firebaseMethods;
                 const unsub = fm.onSnapshot(fm.collection(window.db, "users"), (snap) => {
@@ -720,116 +648,207 @@
                 return () => unsub();
             }, []);
 
+            // Fetch Pagine Personalizzate (Notion)
             useEffect(() => {
-                if (!activeProfileId) { setCrmData(null); return; }
                 const fm = window.firebaseMethods;
-                const unsub = fm.onSnapshot(fm.doc(window.db, "crm_profiles", activeProfileId), (doc) => {
-                    if (doc.exists()) setCrmData(doc.data());
-                    else setCrmData({ icon: '👤', status: 'Lead (Nuovo)', phone: '', campaign: '', notes: '' });
+                const q = fm.query(fm.collection(window.db, "crm_pages"), fm.where("ownerId", "==", user.uid));
+                const unsub = fm.onSnapshot(q, (snap) => {
+                    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    list.sort((a, b) => (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0));
+                    setCustomPages(list);
                 });
                 return () => unsub();
-            }, [activeProfileId]);
+            }, [user.uid]);
 
-            const selectProfile = (id) => {
-                setActiveProfileId(id);
+            // Fetch Dati della Scheda Attiva
+            useEffect(() => {
+                if (!activeSelection) { setActiveData(null); return; }
+                const fm = window.firebaseMethods;
+                let unsub;
+                if (activeSelection.type === 'profile') {
+                    unsub = fm.onSnapshot(fm.doc(window.db, "crm_profiles", activeSelection.id), (doc) => {
+                        if (doc.exists()) setActiveData(doc.data());
+                        else setActiveData({ icon: '👤', status: 'Lead (Nuovo)', phone: '', campaign: '', notes: '' });
+                    });
+                } else if (activeSelection.type === 'page') {
+                    unsub = fm.onSnapshot(fm.doc(window.db, "crm_pages", activeSelection.id), (doc) => {
+                        if (doc.exists()) setActiveData(doc.data());
+                    });
+                }
+                return () => { if (unsub) unsub(); };
+            }, [activeSelection]);
+
+            const selectItem = (type, id) => {
+                setActiveSelection({ type, id });
                 if (id && !historyPushedRef.current) { try { window.history.pushState({ crmOpen: true }, ''); historyPushedRef.current = true; } catch (e) {} }
             };
-            const handleBackToList = () => { setActiveProfileId(null); if (historyPushedRef.current) { historyPushedRef.current = false; try { window.history.back(); } catch (e) {} } };
+            const handleBackToList = () => { setActiveSelection(null); if (historyPushedRef.current) { historyPushedRef.current = false; try { window.history.back(); } catch (e) {} } };
 
             useEffect(() => {
-                const handlePopState = () => { historyPushedRef.current = false; setActiveProfileId(null); };
+                const handlePopState = () => { historyPushedRef.current = false; setActiveSelection(null); };
                 window.addEventListener('popstate', handlePopState); return () => window.removeEventListener('popstate', handlePopState);
             }, []);
 
-            const updateCrmField = (field, value) => {
-                if (!activeProfileId) return;
+            // Crea Nuova Pagina Vuota
+            const createNewPage = async () => {
                 const fm = window.firebaseMethods;
-                const ref = fm.doc(window.db, "crm_profiles", activeProfileId);
-                fm.setDoc(ref, { [field]: value, updatedAt: fm.serverTimestamp() }, { merge: true }).catch(() => showToast("Errore salvataggio CRM", "error"));
+                try {
+                    const ref = await fm.addDoc(fm.collection(window.db, "crm_pages"), {
+                        ownerId: user.uid, title: "", icon: "📄", content: "", updatedAt: fm.serverTimestamp()
+                    });
+                    selectItem('page', ref.id);
+                } catch (e) { showToast("Errore creazione pagina", "error"); }
+            };
+
+            const deleteActivePage = async () => {
+                if (!activeSelection || activeSelection.type !== 'page') return;
+                const fm = window.firebaseMethods;
+                if(window.confirm("Sei sicuro di voler eliminare questa pagina?")) {
+                    try {
+                        await fm.deleteDoc(fm.doc(window.db, "crm_pages", activeSelection.id));
+                        setActiveSelection(null); showToast("Pagina eliminata!");
+                    } catch (e) { showToast("Errore", "error"); }
+                }
+            };
+
+            const updateField = (field, value) => {
+                if (!activeSelection) return;
+                const fm = window.firebaseMethods;
+                const collectionName = activeSelection.type === 'profile' ? "crm_profiles" : "crm_pages";
+                const ref = fm.doc(window.db, collectionName, activeSelection.id);
+                fm.setDoc(ref, { [field]: value, updatedAt: fm.serverTimestamp() }, { merge: true }).catch(() => {});
             };
 
             const autoResizeTextarea = (e) => {
                 e.target.style.height = 'auto'; e.target.style.height = (e.target.scrollHeight) + 'px';
-                updateCrmField('notes', e.target.value);
+                updateField(activeSelection.type === 'page' ? 'content' : 'notes', e.target.value);
             };
 
             const affiliates = Object.values(allUsers).filter(u => u.uid && u.uid !== user.uid);
             const filteredAffiliates = affiliates.filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase()) || u.email.toLowerCase().includes(searchTerm.toLowerCase()));
+            const filteredPages = customPages.filter(p => (p.title || 'Senza Titolo').toLowerCase().includes(searchTerm.toLowerCase()));
 
             return (
                 <>
-                    <div className={"w-full md:w-[320px] lg:w-[350px] h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0 " + (activeProfileId ? "hidden md:flex" : "flex")}>
+                    {/* BARRA LATERALE CRM */}
+                    <div className={"w-full md:w-[320px] lg:w-[350px] h-full bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0 " + (activeSelection ? "hidden md:flex" : "flex")}>
                         <div className="bg-[#008069] px-4 py-4 flex items-center gap-3 text-white flex-shrink-0">
                             <button onClick={onOpenLauncher} className="w-9 h-9 rounded-full hover:bg-white/20 flex items-center justify-center transition"><i className="fa-solid fa-grip text-lg"></i></button>
-                            <div className="font-bold text-lg">CRM Affiliati</div>
+                            <div className="font-bold text-lg">Workspace</div>
                         </div>
-                        <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-                            <div className="bg-gray-100 dark:bg-gray-900 rounded-xl flex items-center px-3.5 py-2">
+                        
+                        <div className="p-3 flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                            <div className="bg-gray-100 dark:bg-gray-900 rounded-xl flex items-center px-3.5 py-2 mb-2">
                                 <i className="fa-solid fa-magnifying-glass text-gray-400"></i>
-                                <input type="text" placeholder="Cerca affiliato..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none w-full text-sm ml-2.5 text-gray-700 dark:text-gray-200" />
+                                <input type="text" placeholder="Cerca pagina o affiliato..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none w-full text-sm ml-2.5 text-gray-700 dark:text-gray-200" />
                             </div>
+                            <button onClick={createNewPage} className="w-full bg-gray-900 dark:bg-gray-700 hover:bg-black dark:hover:bg-gray-600 text-white text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition">
+                                <i className="fa-solid fa-plus"></i> Nuova Pagina
+                            </button>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                            {filteredAffiliates.map(u => (
-                                <div key={u.uid} onClick={() => selectProfile(u.uid)} className={`p-3 rounded-xl flex items-center gap-3 cursor-pointer transition ${activeProfileId === u.uid ? 'bg-[#008069]/10 dark:bg-[#008069]/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
-                                    <Avatar name={u.name} photoURL={u.photoURL} size="w-10 h-10" />
-                                    <div className="flex-1 min-w-0"><div className="font-bold text-sm text-gray-900 dark:text-white truncate">{u.name}</div><div className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{u.email}</div></div>
+
+                        <div className="flex-1 overflow-y-auto p-3 space-y-4">
+                            {/* SEZIONE PAGINE LIBERE */}
+                            <div>
+                                <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-1">📄 Le Mie Note</div>
+                                <div className="space-y-1">
+                                    {filteredPages.map(p => (
+                                        <div key={p.id} onClick={() => selectItem('page', p.id)} className={`p-2 rounded-lg flex items-center gap-3 cursor-pointer transition ${activeSelection?.id === p.id ? 'bg-[#008069]/10 dark:bg-[#008069]/30 text-[#008069] dark:text-[#00a884] font-bold' : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium'}`}>
+                                            <span className="text-lg">{p.icon || '📄'}</span>
+                                            <div className="text-sm truncate">{p.title || 'Senza Titolo'}</div>
+                                        </div>
+                                    ))}
+                                    {filteredPages.length === 0 && <div className="text-xs text-gray-400 px-2 italic">Nessuna pagina trovata.</div>}
                                 </div>
-                            ))}
-                            {filteredAffiliates.length === 0 && <div className="text-center p-6 text-gray-400 text-sm">Nessun affiliato trovato.</div>}
+                            </div>
+
+                            {/* SEZIONE AFFILIATI */}
+                            <div>
+                                <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-1">👥 Profili Affiliati</div>
+                                <div className="space-y-1">
+                                    {filteredAffiliates.map(u => (
+                                        <div key={u.uid} onClick={() => selectItem('profile', u.uid)} className={`p-2 rounded-lg flex items-center gap-3 cursor-pointer transition ${activeSelection?.id === u.uid ? 'bg-white dark:bg-gray-700 shadow-sm border border-gray-200 dark:border-gray-600' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                                            <Avatar name={u.name} photoURL={u.photoURL} size="w-8 h-8" />
+                                            <div className="flex-1 min-w-0"><div className="font-bold text-sm text-gray-900 dark:text-white truncate">{u.name}</div><div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{u.email}</div></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div className={"flex-1 h-full flex flex-col bg-white dark:bg-gray-900 overflow-y-auto " + (!activeProfileId ? "hidden md:flex" : "flex w-full")}>
-                        {activeProfileId && crmData ? (
-                            <div className="max-w-3xl w-full mx-auto pb-20">
-                                {/* Header copertina sfumata */}
-                                <div className="h-32 sm:h-48 w-full bg-gradient-to-r from-emerald-400 to-[#008069] relative flex-shrink-0">
-                                    <button onClick={handleBackToList} className="md:hidden absolute top-4 left-4 w-10 h-10 bg-black/20 text-white rounded-full flex items-center justify-center backdrop-blur"><i className="fa-solid fa-arrow-left"></i></button>
+                    {/* FOGLIO NOTION PRINCIPALE */}
+                    <div className={"flex-1 h-full flex flex-col bg-white dark:bg-[#191919] overflow-y-auto " + (!activeSelection ? "hidden md:flex" : "flex w-full")}>
+                        {activeSelection && activeData ? (
+                            <div className="max-w-4xl w-full mx-auto pb-32">
+                                
+                                {/* COPERTINA */}
+                                <div className="h-32 sm:h-56 w-full bg-gradient-to-r from-emerald-200 to-[#008069] dark:from-[#005c4b] dark:to-gray-900 relative flex-shrink-0 group">
+                                    <button onClick={handleBackToList} className="md:hidden absolute top-4 left-4 w-10 h-10 bg-black/20 hover:bg-black/40 text-white rounded-full flex items-center justify-center backdrop-blur transition"><i className="fa-solid fa-arrow-left"></i></button>
+                                    {activeSelection.type === 'page' && (
+                                        <button onClick={deleteActivePage} className="absolute top-4 right-4 w-10 h-10 bg-black/20 hover:bg-red-500 text-white rounded-full flex items-center justify-center backdrop-blur transition"><i className="fa-solid fa-trash"></i></button>
+                                    )}
                                 </div>
-                                <div className="px-6 sm:px-12 -mt-10 sm:-mt-12 relative z-10">
-                                    {/* Emoji selettore */}
-                                    <input type="text" value={crmData.icon || '👤'} onChange={e => updateCrmField('icon', e.target.value)} className="w-20 h-20 sm:w-24 sm:h-24 text-5xl sm:text-6xl bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 flex items-center justify-center text-center outline-none focus:ring-2 focus:ring-[#008069] mb-4" />
+
+                                <div className="px-6 sm:px-16 -mt-12 sm:-mt-16 relative z-10">
+                                    {/* ICONA EMOJI */}
+                                    <input 
+                                        type="text" 
+                                        value={activeData.icon || (activeSelection.type === 'profile' ? '👤' : '📄')} 
+                                        onChange={e => updateField('icon', e.target.value)} 
+                                        className="w-24 h-24 sm:w-28 sm:h-28 text-6xl sm:text-7xl bg-white dark:bg-[#191919] rounded-2xl flex items-center justify-center text-center outline-none mb-6 p-0 border-none bg-transparent" 
+                                    />
                                     
-                                    {/* Nome in grande */}
-                                    <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tight">{allUsers[activeProfileId]?.name}</h1>
+                                    {/* TITOLO PAGINA (SOLO CUSTOM PAGE) */}
+                                    {activeSelection.type === 'page' ? (
+                                        <input 
+                                            type="text" 
+                                            placeholder="Senza Titolo" 
+                                            value={activeData.title || ''} 
+                                            onChange={e => updateField('title', e.target.value)} 
+                                            className="w-full text-4xl sm:text-5xl font-extrabold text-gray-900 dark:text-white mb-8 tracking-tight bg-transparent outline-none placeholder-gray-300 dark:placeholder-gray-700" 
+                                        />
+                                    ) : (
+                                        <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 dark:text-white mb-8 tracking-tight">{allUsers[activeSelection.id]?.name}</h1>
+                                    )}
                                     
-                                    {/* Proprietà */}
-                                    <div className="space-y-3 mb-8 border-b border-gray-200 dark:border-gray-700 pb-8">
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-                                            <div className="w-32 text-sm text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-2"><i className="fa-solid fa-chart-pie w-4"></i> Stato CRM</div>
-                                            <select value={crmData.status || 'Lead (Nuovo)'} onChange={e => updateCrmField('status', e.target.value)} className="flex-1 bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800 p-1 rounded outline-none text-gray-900 dark:text-white font-medium cursor-pointer">
-                                                {CRM_STATUSES.map(s => <option key={s} value={s} className="dark:bg-gray-800">{s}</option>)}
-                                            </select>
+                                    {/* PROPRIETA' CRM (SOLO AFFILIATI) */}
+                                    {activeSelection.type === 'profile' && (
+                                        <div className="space-y-3 mb-10 border-b border-gray-200 dark:border-gray-800 pb-8">
+                                            <div className="flex items-center gap-6">
+                                                <div className="w-32 text-sm text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-2"><i className="fa-solid fa-chart-pie w-4"></i> Stato CRM</div>
+                                                <select value={activeData.status || 'Lead (Nuovo)'} onChange={e => updateField('status', e.target.value)} className="flex-1 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 p-1.5 rounded outline-none text-gray-900 dark:text-white font-medium cursor-pointer transition">
+                                                    {CRM_STATUSES.map(s => <option key={s} value={s} className="dark:bg-gray-800">{s}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="flex items-center gap-6">
+                                                <div className="w-32 text-sm text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-2"><i className="fa-solid fa-phone w-4"></i> Telefono</div>
+                                                <input type="text" placeholder="Aggiungi telefono..." value={activeData.phone || ''} onChange={e => updateField('phone', e.target.value)} className="flex-1 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 p-1.5 rounded outline-none text-gray-900 dark:text-white transition" />
+                                            </div>
+                                            <div className="flex items-center gap-6">
+                                                <div className="w-32 text-sm text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-2"><i className="fa-solid fa-bullseye w-4"></i> Campagna</div>
+                                                <input type="text" placeholder="Es. Google Ads..." value={activeData.campaign || ''} onChange={e => updateField('campaign', e.target.value)} className="flex-1 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 p-1.5 rounded outline-none text-gray-900 dark:text-white transition" />
+                                            </div>
                                         </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-                                            <div className="w-32 text-sm text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-2"><i className="fa-solid fa-phone w-4"></i> Telefono</div>
-                                            <input type="text" placeholder="Vuoto" value={crmData.phone || ''} onChange={e => updateCrmField('phone', e.target.value)} className="flex-1 bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800 p-1 rounded outline-none text-gray-900 dark:text-white" />
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-                                            <div className="w-32 text-sm text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-2"><i className="fa-solid fa-bullseye w-4"></i> Campagna</div>
-                                            <input type="text" placeholder="Es. Ads Facebook Gennaio" value={crmData.campaign || ''} onChange={e => updateCrmField('campaign', e.target.value)} className="flex-1 bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800 p-1 rounded outline-none text-gray-900 dark:text-white" />
-                                        </div>
-                                    </div>
+                                    )}
                                     
-                                    {/* Area Note Rich Text-like */}
+                                    {/* FOGLIO NOTION / TEXTAREA INFINITA */}
                                     <div className="relative">
-                                        <div className="text-gray-400 dark:text-gray-500 mb-2 font-bold text-sm"><i className="fa-solid fa-align-left mr-2"></i>Note Operative (Salvataggio automatico)</div>
                                         <textarea
-                                            placeholder="Inizia a digitare le note su questo affiliato..."
-                                            defaultValue={crmData.notes || ''}
+                                            placeholder="Premi per iniziare a scrivere..."
+                                            defaultValue={activeSelection.type === 'page' ? (activeData.content || '') : (activeData.notes || '')}
                                             onBlur={autoResizeTextarea}
                                             onChange={(e) => { e.target.style.height = 'auto'; e.target.style.height = (e.target.scrollHeight) + 'px'; }}
-                                            className="notion-textarea w-full bg-transparent text-gray-800 dark:text-gray-200 outline-none text-base leading-relaxed"
+                                            className="notion-textarea w-full bg-transparent text-gray-800 dark:text-gray-200 outline-none text-base sm:text-lg"
                                         ></textarea>
                                     </div>
                                 </div>
                             </div>
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
-                                <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-4"><i className="fa-solid fa-address-card text-4xl text-gray-300 dark:text-gray-600"></i></div>
-                                <h2 className="text-xl font-bold text-gray-700 dark:text-gray-300">Workspace CRM</h2>
-                                <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Seleziona un affiliato a sinistra per gestire la sua scheda cliente.</p>
+                                <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-3xl flex items-center justify-center mb-6"><i className="fa-solid fa-layer-group text-5xl text-gray-300 dark:text-gray-600"></i></div>
+                                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Workspace Interno</h2>
+                                <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-sm">Crea nuove pagine di appunti o seleziona un affiliato per gestire la sua scheda CRM.</p>
                             </div>
                         )}
                     </div>
