@@ -92,10 +92,16 @@
 
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body {
+        html, body, #root {
+            height: 100vh;
+            height: 100dvh;
+            width: 100%;
             margin: 0;
-            background-color: #d1d7db;
+            padding: 0;
             overflow: hidden;
+            position: fixed;
+            inset: 0;
+            background-color: #d1d7db;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             user-select: none;
         }
@@ -124,6 +130,57 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
+        // --- GESTIONE SICURA DELL'INVITO IN MEMORIA E SESSIONE ---
+        const pendingInviteStore = {
+            key: 'ffchatgram_pending_invite',
+            chatKey: 'ffchatgram_auto_open_chat',
+            memInvite: null,
+            memChat: null,
+            getInvite() {
+                try { return window.sessionStorage.getItem(this.key) || this.memInvite; } catch (e) { return this.memInvite; }
+            },
+            setInvite(val) {
+                this.memInvite = val;
+                try { window.sessionStorage.setItem(this.key, val); } catch (e) {}
+            },
+            clearInvite() {
+                this.memInvite = null;
+                try { window.sessionStorage.removeItem(this.key); } catch (e) {}
+            },
+            getAutoChat() {
+                try { return window.sessionStorage.getItem(this.chatKey) || this.memChat; } catch (e) { return this.memChat; }
+            },
+            setAutoChat(val) {
+                this.memChat = val;
+                try { window.sessionStorage.setItem(this.chatKey, val); } catch (e) {}
+            },
+            clearAutoChat() {
+                this.memChat = null;
+                try { window.sessionStorage.removeItem(this.chatKey); } catch (e) {}
+            }
+        };
+
+        // Cattura immediatamente ?invite=UID all'apertura della pagina prima di qualsiasi redirect
+        try {
+            const initParams = new URLSearchParams(window.location.search);
+            const initInvite = initParams.get('invite');
+            if (initInvite && initInvite.trim()) {
+                pendingInviteStore.setInvite(initInvite.trim());
+            }
+        } catch (e) {}
+
+        // --- GENERATORE URL D'INVITO SEMPRE VALIDO E CLICCABILE ---
+        function getInviteUrl(uid) {
+            let baseUrl = 'https://fsc1926-rgb.github.io/FFchatgram/';
+            try {
+                if (window.location.hostname && window.location.hostname.toLowerCase().includes('github.io')) {
+                    const cleanPath = window.location.pathname.replace(/\/index\.html$/i, '').replace(/\/+$/, '');
+                    baseUrl = window.location.origin + cleanPath + '/';
+                }
+            } catch (e) {}
+            return baseUrl + '?invite=' + encodeURIComponent(uid || '');
+        }
+
         // --- FUNZIONE SONORA NOTIFICA (Web Audio API, zero file esterni) ---
         function playNotificationSound() {
             try {
@@ -146,22 +203,28 @@
 
         // --- COPIA NEGLI APPUNTI COMPATIBILE CON TUTTI I DISPOSITIVI ---
         function copyTextSafe(text) {
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
-            } else {
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+                } else {
+                    fallbackCopy(text);
+                }
+            } catch (e) {
                 fallbackCopy(text);
             }
         }
         function fallbackCopy(text) {
-            const ta = document.createElement('textarea');
-            ta.value = text;
-            ta.style.position = 'fixed';
-            ta.style.opacity = '0';
-            document.body.appendChild(ta);
-            ta.focus();
-            ta.select();
-            try { document.execCommand('copy'); } catch (e) {}
-            document.body.removeChild(ta);
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            } catch (e) {}
         }
 
         // --- UPLOAD IMMAGINE SU IMGBB ---
@@ -215,9 +278,11 @@
             };
 
             useEffect(() => {
-                if ('Notification' in window && Notification.permission === 'default') {
-                    Notification.requestPermission().catch(() => {});
-                }
+                try {
+                    if ('Notification' in window && Notification.permission === 'default') {
+                        Notification.requestPermission().catch(() => {});
+                    }
+                } catch (e) {}
             }, []);
 
             useEffect(() => {
@@ -237,6 +302,53 @@
                     clearTimeout(timeout);
                 };
             }, [fbReady]);
+
+            // Funzione che collega automaticamente l'invitato con chi lo ha invitato e apre subito la chat
+            const handleAutoInvite = async (myUid, myProfile, inviterUid) => {
+                if (!myUid || !inviterUid || myUid === inviterUid) return;
+                try {
+                    const fm = window.firebaseMethods;
+                    const inviterSnap = await fm.getDoc(fm.doc(window.db, "users", inviterUid));
+                    const inviterData = inviterSnap.exists() ? inviterSnap.data() : { name: 'Affiliato', photoURL: '' };
+
+                    // Controlla se esiste già una chat diretta tra i due utenti
+                    const q = fm.query(fm.collection(window.db, "chats"), fm.where("members", "array-contains", myUid));
+                    const existingSnap = await fm.getDocs(q);
+                    const existingDoc = existingSnap.docs.find(d => {
+                        const data = d.data();
+                        return data.type === 'direct' && data.members && data.members.includes(inviterUid);
+                    });
+
+                    let targetChatId = null;
+                    if (existingDoc) {
+                        targetChatId = existingDoc.id;
+                    } else {
+                        const newChatRef = await fm.addDoc(fm.collection(window.db, "chats"), {
+                            type: 'direct',
+                            members: [myUid, inviterUid],
+                            memberData: {
+                                [myUid]: { name: myProfile?.name || 'Affiliato', photoURL: myProfile?.photoURL || '' },
+                                [inviterUid]: { name: inviterData.name || 'Affiliato', photoURL: inviterData.photoURL || '' }
+                            },
+                            lastMessage: '👋 Chat avviata tramite link di invito!',
+                            updatedAt: fm.serverTimestamp()
+                        });
+                        targetChatId = newChatRef.id;
+                        showToast('Collegamento completato con ' + (inviterData.name || 'il tuo affiliato') + '!');
+                    }
+
+                    pendingInviteStore.clearInvite();
+                    if (targetChatId) {
+                        pendingInviteStore.setAutoChat(targetChatId);
+                        window.dispatchEvent(new CustomEvent('ffchatgram-open-chat', { detail: { chatId: targetChatId } }));
+                    }
+                    try {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    } catch (errHist) {}
+                } catch (e) {
+                    console.error("Errore auto-invite:", e);
+                }
+            };
 
             useEffect(() => {
                 if (!fbReady || !window.firebaseMethods) return;
@@ -264,12 +376,15 @@
                             }
                             setUserData(profileData);
 
-                            // Gestione Auto-Invito tramite parametro URL ?invite=UID
-                            const params = new URLSearchParams(window.location.search);
-                            const inviteUid = params.get('invite');
+                            // Controlla invito sia da URL sia da memoria temporanea
+                            let inviteUid = pendingInviteStore.getInvite();
+                            try {
+                                const params = new URLSearchParams(window.location.search);
+                                if (params.get('invite')) inviteUid = params.get('invite').trim();
+                            } catch (errUrl) {}
+
                             if (inviteUid && inviteUid !== currentUser.uid) {
                                 await handleAutoInvite(currentUser.uid, profileData, inviteUid);
-                                window.history.replaceState({}, document.title, window.location.pathname);
                             }
                         } catch (e) {
                             console.error("Errore lettura profilo:", e);
@@ -283,42 +398,9 @@
                 return () => unsub();
             }, [fbReady]);
 
-            const handleAutoInvite = async (myUid, myProfile, inviterUid) => {
-                try {
-                    const fm = window.firebaseMethods;
-                    const inviterSnap = await fm.getDoc(fm.doc(window.db, "users", inviterUid));
-                    if (!inviterSnap.exists()) return;
-                    const inviterData = inviterSnap.data();
-
-                    // Controlla se esiste già una chat diretta tra i due utenti
-                    const q = fm.query(fm.collection(window.db, "chats"), fm.where("members", "array-contains", myUid));
-                    const existingSnap = await fm.getDocs(q);
-                    const alreadyExists = existingSnap.docs.some(d => {
-                        const data = d.data();
-                        return data.type === 'direct' && data.members && data.members.includes(inviterUid);
-                    });
-
-                    if (!alreadyExists) {
-                        await fm.addDoc(fm.collection(window.db, "chats"), {
-                            type: 'direct',
-                            members: [myUid, inviterUid],
-                            memberData: {
-                                [myUid]: { name: myProfile.name || 'Affiliato', photoURL: myProfile.photoURL || '' },
-                                [inviterUid]: { name: inviterData.name || 'Affiliato', photoURL: inviterData.photoURL || '' }
-                            },
-                            lastMessage: '👋 Chat avviata tramite link di invito!',
-                            updatedAt: fm.serverTimestamp()
-                        });
-                        showToast('Collegamento completato con ' + (inviterData.name || 'il tuo affiliato') + '!');
-                    }
-                } catch (e) {
-                    console.error("Errore auto-invite:", e);
-                }
-            };
-
             if (fbError) {
                 return (
-                    <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#f0f2f5] p-6 text-center">
+                    <div className="h-full w-full flex flex-col items-center justify-center bg-[#f0f2f5] p-6 text-center">
                         <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
                             <i className="fa-solid fa-triangle-exclamation text-amber-500 text-5xl mb-4"></i>
                             <h2 className="text-xl font-bold text-gray-800 mb-2">Errore di Connessione</h2>
@@ -333,7 +415,7 @@
 
             if (!fbReady || authLoading) {
                 return (
-                    <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#f0f2f5]">
+                    <div className="h-full w-full flex flex-col items-center justify-center bg-[#f0f2f5]">
                         <div className="w-14 h-14 border-4 border-[#008069] border-t-transparent rounded-full animate-spin"></div>
                         <h2 className="mt-4 text-lg font-bold text-[#008069]">FFchatgram</h2>
                         <p className="text-xs text-gray-500 mt-1">Connessione crittografata in corso...</p>
@@ -342,7 +424,7 @@
             }
 
             return (
-                <div className="h-screen w-screen overflow-hidden relative select-text">
+                <div className="h-full w-full overflow-hidden relative select-text" style={{ height: '100dvh', position: 'fixed', inset: 0 }}>
                     {toast && (
                         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl shadow-2xl text-white font-semibold text-sm flex items-center gap-2.5 transition-all"
                              style={{ backgroundColor: toast.type === 'error' ? '#dc2626' : '#008069' }}>
@@ -353,24 +435,29 @@
                     {user ? (
                         <Dashboard user={user} userData={userData} setUserData={setUserData} showToast={showToast} />
                     ) : (
-                        <AuthScreen showToast={showToast} />
+                        <AuthScreen showToast={showToast} onAutoInvite={handleAutoInvite} />
                     )}
                 </div>
             );
         }
 
         // --- SCHERMATA DI LOGIN / REGISTRAZIONE / RECUPERO PASSWORD ---
-        function AuthScreen({ showToast }) {
-            const [mode, setMode] = useState('login'); // 'login' | 'register' | 'reset'
+        function AuthScreen({ showToast, onAutoInvite }) {
+            const hasInvite = useMemo(() => {
+                try {
+                    return !!(pendingInviteStore.getInvite() || new URLSearchParams(window.location.search).get('invite'));
+                } catch (e) {
+                    return !!pendingInviteStore.getInvite();
+                }
+            }, []);
+
+            // Se l'utente arriva da un link di invito, apri direttamente la scheda "Nuovo Affiliato"
+            const [mode, setMode] = useState(hasInvite ? 'register' : 'login'); // 'login' | 'register' | 'reset'
             const [name, setName] = useState('');
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
             const [busy, setBusy] = useState(false);
             const [errorMsg, setErrorMsg] = useState('');
-
-            const hasInvite = useMemo(() => {
-                return new URLSearchParams(window.location.search).has('invite');
-            }, []);
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -388,14 +475,20 @@
                             return;
                         }
                         const cred = await fm.createUserWithEmailAndPassword(window.auth, email.trim(), password);
-                        await fm.updateProfile(cred.user, { displayName: name.trim() });
-                        await fm.setDoc(fm.doc(window.db, "users", cred.user.uid), {
+                        const newProfile = {
                             uid: cred.user.uid,
                             name: name.trim(),
                             email: email.trim().toLowerCase(),
                             photoURL: '',
                             updatedAt: fm.serverTimestamp()
-                        });
+                        };
+                        await fm.updateProfile(cred.user, { displayName: name.trim() });
+                        await fm.setDoc(fm.doc(window.db, "users", cred.user.uid), newProfile, { merge: true });
+
+                        const inviteUid = pendingInviteStore.getInvite();
+                        if (inviteUid && inviteUid !== cred.user.uid && onAutoInvite) {
+                            await onAutoInvite(cred.user.uid, newProfile, inviteUid);
+                        }
                         showToast("Benvenuto su FFchatgram, " + name.trim() + "!");
                     } else if (mode === 'reset') {
                         if (!email.trim()) {
@@ -409,14 +502,13 @@
                     }
                 } catch (err) {
                     console.error("Errore autenticazione Firebase:", err);
-                    // ORA MOSTRIAMO L'ERRORE NUDO E CRUDO DI FIREBASE
                     setErrorMsg("ERRORE FIREBASE: " + (err.code || 'Sconosciuto') + " - " + (err.message || 'Dettagli non disponibili'));
                 }
                 setBusy(false);
             };
 
             return (
-                <div className="min-h-screen w-full bg-gradient-to-b from-[#00a884] via-[#00a884] to-[#eae6df] flex items-center justify-center p-4">
+                <div className="h-full w-full overflow-y-auto bg-gradient-to-b from-[#00a884] via-[#00a884] to-[#eae6df] flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                         <div className="bg-[#008069] p-6 text-center text-white">
                             <div className="w-16 h-16 bg-white/15 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
@@ -426,7 +518,7 @@
                             <p className="text-xs text-emerald-100 mt-1">Piattaforma Privata di Messaggistica Affiliati</p>
                             {hasInvite && (
                                 <div className="mt-3 bg-white/20 text-white text-xs py-1.5 px-3 rounded-full inline-flex items-center gap-1.5 font-semibold">
-                                    <i className="fa-solid fa-link"></i> Invito diretto rilevato: accedi o registrati per collegarti!
+                                    <i className="fa-solid fa-link"></i> Invito diretto rilevato: registrati o accedi per collegarti subito!
                                 </div>
                             )}
                         </div>
@@ -517,7 +609,7 @@
             const [searchTerm, setSearchTerm] = useState('');
 
             // Modals state
-            const [modal, setModal] = useState(null); // 'newChat' | 'newGroup' | 'settings' | 'addGroupMember'
+            const [modal, setModal] = useState(null); // 'inviteModal' | 'newChat' | 'newGroup' | 'settings' | 'addGroupMember'
             const [lightboxUrl, setLightboxUrl] = useState(null);
 
             // Settings state
@@ -531,9 +623,53 @@
             const [groupName, setGroupName] = useState('');
             const [selectedMembers, setSelectedMembers] = useState([]);
 
+            const myInviteUrl = useMemo(() => getInviteUrl(user.uid), [user.uid]);
+
             useEffect(() => {
                 if (userData?.name) setEditName(userData.name);
             }, [userData]);
+
+            // Funzione sicura per selezionare una chat e registrare lo stato per il tasto Indietro dello smartphone
+            const selectChat = (chatId) => {
+                setActiveChatId(chatId);
+                if (chatId) {
+                    try {
+                        window.history.pushState({ chatOpen: true }, '');
+                    } catch (e) {}
+                }
+            };
+
+            // Ascolta l'apertura automatica della chat dopo un invito
+            useEffect(() => {
+                const pendingChat = pendingInviteStore.getAutoChat();
+                if (pendingChat) {
+                    selectChat(pendingChat);
+                    pendingInviteStore.clearAutoChat();
+                }
+                const onOpenChat = (e) => {
+                    if (e.detail && e.detail.chatId) {
+                        selectChat(e.detail.chatId);
+                        pendingInviteStore.clearAutoChat();
+                    }
+                };
+                window.addEventListener('ffchatgram-open-chat', onOpenChat);
+                return () => window.removeEventListener('ffchatgram-open-chat', onOpenChat);
+            }, []);
+
+            // Gestione del tasto fisico "Indietro" dello smartphone
+            useEffect(() => {
+                const handlePopState = () => {
+                    if (lightboxUrl) {
+                        setLightboxUrl(null);
+                    } else if (modal) {
+                        setModal(null);
+                    } else {
+                        setActiveChatId(null);
+                    }
+                };
+                window.addEventListener('popstate', handlePopState);
+                return () => window.removeEventListener('popstate', handlePopState);
+            }, [lightboxUrl, modal]);
 
             // Ascolta tutti gli utenti registrati per rubrica e avatar sempre aggiornati
             useEffect(() => {
@@ -593,13 +729,11 @@
                 return Object.entries(chat.typing).some(([uid, ts]) => uid !== user.uid && typeof ts === 'number' && (now - ts) < 5000);
             };
 
-            // Copia Link d'invito automatico
+            // Apri finestra d'invito e copia subito il link diretto
             const handleCopyInvite = () => {
-                const baseUrl = window.location.origin + window.location.pathname;
-                const inviteUrl = baseUrl + '?invite=' + user.uid;
-                const msg = "Unisciti alla mia rete privata FFchatgram! Clicca qui per collegarti direttamente con me: " + inviteUrl;
-                copyTextSafe(msg);
-                showToast("Link d'invito copiato! Incollalo su WhatsApp o invialo al tuo affiliato.");
+                copyTextSafe(myInviteUrl);
+                setModal('inviteModal');
+                showToast("Link d'invito copiato negli appunti!");
             };
 
             // Avvia o apri chat 1-a-1 con un utente
@@ -610,7 +744,7 @@
                 // Controlla se la chat esiste già
                 const existing = chats.find(c => c.type === 'direct' && c.members && c.members.includes(targetUser.uid));
                 if (existing) {
-                    setActiveChatId(existing.id);
+                    selectChat(existing.id);
                     setModal(null);
                     return;
                 }
@@ -625,7 +759,7 @@
                     lastMessage: 'Nuova conversazione avviata',
                     updatedAt: fm.serverTimestamp()
                 });
-                setActiveChatId(newChatRef.id);
+                selectChat(newChatRef.id);
                 setModal(null);
                 showToast("Chat avviata con " + (targetUser.name || "Affiliato"));
             };
@@ -659,7 +793,7 @@
                 setGroupName('');
                 setSelectedMembers([]);
                 setModal(null);
-                setActiveChatId(ref.id);
+                selectChat(ref.id);
                 showToast("Gruppo creato con successo!");
             };
 
@@ -737,13 +871,13 @@
             const filteredChats = chats.filter(c => getChatInfo(c).name.toLowerCase().includes(searchTerm.toLowerCase()));
 
             return (
-                <div className="flex h-screen w-screen bg-[#f0f2f5] overflow-hidden">
+                <div className="flex h-full w-full bg-[#f0f2f5] overflow-hidden">
                     
                     {/* SIDEBAR SINISTRA */}
-                    <div className={"w-full md:w-[390px] lg:w-[420px] bg-white border-r border-gray-200 flex flex-col flex-shrink-0 " + (activeChat ? "hidden md:flex" : "flex")}>
+                    <div className={"w-full md:w-[390px] lg:w-[420px] h-full bg-white border-r border-gray-200 flex flex-col flex-shrink-0 " + (activeChat ? "hidden md:flex" : "flex")}>
                         
                         {/* HEADER UTENTE */}
-                        <div className="bg-[#f0f2f5] px-4 py-3 flex items-center justify-between border-b border-gray-200">
+                        <div className="bg-[#f0f2f5] px-4 py-3 flex items-center justify-between border-b border-gray-200 flex-shrink-0">
                             <div className="flex items-center gap-3 cursor-pointer" onClick={() => setModal('settings')} title="Impostazioni Profilo">
                                 <Avatar name={userData?.name || "Io"} photoURL={userData?.photoURL} size="w-11 h-11" />
                                 <div>
@@ -755,7 +889,7 @@
                             </div>
 
                             <div className="flex items-center gap-1.5 text-gray-600">
-                                <button onClick={handleCopyInvite} title="Copia Link d'Invito Affiliato" className="w-9 h-9 rounded-full hover:bg-gray-200 flex items-center justify-center transition text-[#008069] cursor-pointer">
+                                <button onClick={handleCopyInvite} title="Invita Affiliato tramite Link" className="w-9 h-9 rounded-full hover:bg-gray-200 flex items-center justify-center transition text-[#008069] cursor-pointer">
                                     <i className="fa-solid fa-link"></i>
                                 </button>
                                 <button onClick={() => { setContactEmailSearch(''); setModal('newChat'); }} title="Nuova Chat" className="w-9 h-9 rounded-full hover:bg-gray-200 flex items-center justify-center transition cursor-pointer">
@@ -771,7 +905,7 @@
                         </div>
 
                         {/* BARRA AZIONI RAPIDE */}
-                        <div className="px-3 py-2 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between gap-2">
+                        <div className="px-3 py-2 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between gap-2 flex-shrink-0">
                             <button onClick={handleCopyInvite} className="flex-1 bg-[#008069] hover:bg-[#017561] text-white text-xs font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition cursor-pointer">
                                 <i className="fa-solid fa-share-nodes"></i> Invita Affiliato
                             </button>
@@ -781,7 +915,7 @@
                         </div>
 
                         {/* RICERCA CHAT */}
-                        <div className="p-2.5 bg-white border-b border-gray-100">
+                        <div className="p-2.5 bg-white border-b border-gray-100 flex-shrink-0">
                             <div className="bg-[#f0f2f5] rounded-xl flex items-center px-3.5 py-2">
                                 <i className="fa-solid fa-magnifying-glass text-gray-400 text-xs"></i>
                                 <input
@@ -810,7 +944,7 @@
                                 return (
                                     <div
                                         key={chat.id}
-                                        onClick={() => setActiveChatId(chat.id)}
+                                        onClick={() => selectChat(chat.id)}
                                         className={"px-4 py-3 flex items-center gap-3.5 cursor-pointer transition " + (isSelected ? "bg-[#f0f2f5]" : "hover:bg-gray-50")}
                                     >
                                         <Avatar name={info.name} photoURL={info.photoURL} isGroup={info.isGroup} size="w-12 h-12" />
@@ -840,7 +974,7 @@
                     </div>
 
                     {/* AREA DESTRA: STANZA CHAT */}
-                    <div className={"flex-1 flex flex-col bg-chat-pattern " + (!activeChat ? "hidden md:flex" : "flex")}>
+                    <div className={"flex-1 h-full flex flex-col bg-chat-pattern overflow-hidden " + (!activeChat ? "hidden md:flex" : "flex w-full")}>
                         {activeChat ? (
                             <ChatRoom
                                 key={activeChat.id}
@@ -867,6 +1001,79 @@
                             </div>
                         )}
                     </div>
+
+                    {/* ========================================================= */}
+                    {/* MODAL 0: CONDIVIDI LINK D'INVITO DIRETTO                  */}
+                    {/* ========================================================= */}
+                    {modal === 'inviteModal' && (
+                        <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+                            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+                                <div className="bg-[#008069] px-5 py-4 text-white flex items-center justify-between">
+                                    <h3 className="font-bold text-base flex items-center gap-2">
+                                        <i className="fa-solid fa-share-nodes"></i> Invita un Affiliato
+                                    </h3>
+                                    <button onClick={() => setModal(null)} className="text-white/80 hover:text-white cursor-pointer">
+                                        <i className="fa-solid fa-xmark text-lg"></i>
+                                    </button>
+                                </div>
+
+                                <div className="p-5 space-y-4">
+                                    <p className="text-xs text-gray-600 leading-relaxed">
+                                        Invia questo link personale al tuo affiliato. Appena aprirà il link e creerà il suo account, <b>la vostra chat privata si aprirà in automatico</b>!
+                                    </p>
+
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Il tuo Link d'Invito Diretto</label>
+                                        <input
+                                            type="text"
+                                            readOnly
+                                            value={myInviteUrl}
+                                            onClick={(e) => e.target.select()}
+                                            className="w-full px-3 py-2.5 bg-gray-100 border border-gray-300 rounded-xl text-xs font-mono text-gray-800 focus:outline-none select-all"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2.5 pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                copyTextSafe(myInviteUrl);
+                                                showToast("Link puro copiato! Incollalo dove vuoi.");
+                                            }}
+                                            className="w-full bg-[#008069] hover:bg-[#017561] text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 shadow transition cursor-pointer"
+                                        >
+                                            <i className="fa-solid fa-copy"></i> Copia solo il Link
+                                        </button>
+
+                                        <a
+                                            href={"https://wa.me/?text=" + encodeURIComponent("Ciao! Entra nella mia chat privata FFchatgram cliccando su questo link:\n" + myInviteUrl)}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="w-full bg-[#25D366] hover:bg-[#1ebe57] text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 shadow transition cursor-pointer no-underline"
+                                        >
+                                            <i className="fa-brands fa-whatsapp text-base"></i> Invia direttamente su WhatsApp
+                                        </a>
+
+                                        {typeof navigator !== 'undefined' && navigator.share && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    navigator.share({
+                                                        title: 'FFchatgram - Invito Privato',
+                                                        text: 'Entra nella mia chat privata FFchatgram:',
+                                                        url: myInviteUrl
+                                                    }).catch(() => {});
+                                                }}
+                                                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
+                                            >
+                                                <i className="fa-solid fa-mobile-screen-button"></i> Condividi da Smartphone
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* ========================================================= */}
                     {/* MODAL 1: RUBRICA / NUOVA CHAT 1-A-1                       */}
@@ -909,14 +1116,14 @@
                                     }
                                     {otherAffiliates.length === 0 && (
                                         <div className="p-6 text-center text-gray-500 text-xs">
-                                            Nessun altro affiliato ancora registrato. Clicca sul pulsante qui sotto per copiare il link d'invito!
+                                            Nessun altro affiliato ancora registrato. Clicca sul pulsante qui sotto per condividere il tuo link d'invito!
                                         </div>
                                     )}
                                 </div>
 
                                 <div className="p-4 bg-gray-50 border-t flex justify-between items-center">
-                                    <button onClick={handleCopyInvite} className="w-full bg-[#008069] text-white text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-2">
-                                        <i className="fa-solid fa-link"></i> Copia Link d'Invito per Nuovi Affiliati
+                                    <button onClick={handleCopyInvite} className="w-full bg-[#008069] text-white text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer">
+                                        <i className="fa-solid fa-link"></i> Condividi Link d'Invito per Nuovi Affiliati
                                     </button>
                                 </div>
                             </div>
@@ -1151,13 +1358,13 @@
                                 }
                                 if (!initialLoadRef.current) {
                                     playNotificationSound();
-                                    if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-                                        try {
+                                    try {
+                                        if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
                                             new Notification(chatInfo.name, {
                                                 body: msgData.type === 'image' ? '📷 Foto ricevuta' : (msgData.text || 'Nuovo messaggio')
                                             });
-                                        } catch (e) {}
-                                    }
+                                        }
+                                    } catch (e) {}
                                 }
                             }
                         }
@@ -1253,13 +1460,19 @@
             const hasMoreMessages = allMessages.length > visibleCount;
 
             return (
-                <div className="flex flex-col h-full w-full relative">
+                <div className="flex flex-col h-full w-full relative overflow-hidden">
                     
-                    {/* HEADER DELLA CHAT */}
-                    <div className="bg-[#f0f2f5] px-4 py-2.5 flex items-center justify-between border-b border-gray-200 z-10 shadow-sm">
-                        <div className="flex items-center gap-3 min-w-0">
-                            <button onClick={onBack} className="md:hidden text-gray-600 hover:text-gray-900 p-1.5 -ml-1">
-                                <i className="fa-solid fa-arrow-left text-lg"></i>
+                    {/* HEADER DELLA CHAT (SEMPRE FISSO IN ALTO SU SMARTPHONE + PULSANTE INDIETRO SEMPRE VISIBILE) */}
+                    <div className="bg-[#f0f2f5] px-3 sm:px-4 py-2.5 flex items-center justify-between border-b border-gray-200 z-20 shadow-sm flex-shrink-0 sticky top-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            <button
+                                type="button"
+                                onClick={onBack}
+                                title="Torna alla lista chat"
+                                className="flex items-center gap-1.5 bg-[#008069]/10 hover:bg-[#008069]/20 text-[#008069] font-bold text-xs px-3 py-1.5 rounded-lg cursor-pointer flex-shrink-0 transition"
+                            >
+                                <i className="fa-solid fa-arrow-left text-sm"></i>
+                                <span>Indietro</span>
                             </button>
                             <Avatar name={chatInfo.name} photoURL={chatInfo.photoURL} isGroup={chatInfo.isGroup} size="w-10 h-10" />
                             <div className="min-w-0">
@@ -1277,7 +1490,7 @@
                         {chatInfo.isGroup && (
                             <button
                                 onClick={onOpenAddMembers}
-                                className="bg-[#008069]/10 hover:bg-[#008069]/20 text-[#008069] text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                                className="bg-[#008069]/10 hover:bg-[#008069]/20 text-[#008069] text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer flex-shrink-0"
                             >
                                 <i className="fa-solid fa-user-plus"></i>
                                 <span className="hidden sm:inline">Aggiungi Membri</span>
@@ -1385,7 +1598,7 @@
 
                     {/* BARRA DI RISPOSTA CITATA */}
                     {replyTo && (
-                        <div className="bg-[#f0f2f5] px-4 py-2 border-t border-l-4 border-l-[#008069] flex items-center justify-between">
+                        <div className="bg-[#f0f2f5] px-4 py-2 border-t border-l-4 border-l-[#008069] flex items-center justify-between flex-shrink-0">
                             <div className="text-xs min-w-0">
                                 <div className="font-bold text-[#008069]">
                                     Rispondi a {replyTo.senderId === user.uid ? 'Te stesso' : (replyTo.senderName || chatInfo.name)}
@@ -1402,7 +1615,7 @@
 
                     {/* BARRA EMOJI RAPIDE */}
                     {showEmojiBar && (
-                        <div className="bg-white px-4 py-2 border-t border-gray-200 flex items-center gap-2 overflow-x-auto">
+                        <div className="bg-white px-4 py-2 border-t border-gray-200 flex items-center gap-2 overflow-x-auto flex-shrink-0">
                             {QUICK_EMOJIS.map(em => (
                                 <button
                                     key={em}
@@ -1417,7 +1630,7 @@
                     )}
 
                     {/* BARRA DI INPUT MESSAGGIO & ALLEGATO FOTO */}
-                    <div className="bg-[#f0f2f5] px-3 py-2.5 flex items-center gap-2 border-t border-gray-200">
+                    <div className="bg-[#f0f2f5] px-3 py-2.5 flex items-center gap-2 border-t border-gray-200 flex-shrink-0">
                         <button
                             type="button"
                             onClick={() => setShowEmojiBar(prev => !prev)}
@@ -1469,13 +1682,17 @@
     </script>
 
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').then(reg => {
-                    reg.update();
-                }).catch(() => {});
-            });
-        }
+        try {
+            if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
+                window.addEventListener('load', () => {
+                    try {
+                        navigator.serviceWorker.register('./sw.js').then(reg => {
+                            try { reg.update(); } catch (e) {}
+                        }).catch(() => {});
+                    } catch (e) {}
+                });
+            }
+        } catch (e) {}
     </script>
 </body>
 </html>
