@@ -38,7 +38,7 @@
         } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
         import { 
             getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, 
-            serverTimestamp, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, arrayUnion, deleteField 
+            serverTimestamp, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, arrayUnion, arrayRemove, deleteField 
         } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         try {
@@ -61,7 +61,7 @@
             window.firebaseMethods = { 
                 signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, updatePassword, 
                 onAuthStateChanged, signOut, updateProfile, collection, addDoc, query, where, orderBy, onSnapshot, 
-                serverTimestamp, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, arrayUnion, deleteField,
+                serverTimestamp, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, arrayUnion, arrayRemove, deleteField,
                 signInWithPopup, googleProvider, appleProvider
             };
             window.firebaseReady = true; window.dispatchEvent(new Event('firebase-ready'));
@@ -85,6 +85,8 @@
         .notion-textarea { resize: none; overflow: hidden; min-height: 300px; line-height: 1.6; }
         .md-bold { font-weight: 700; }
         .md-italic { font-style: italic; }
+        .md-link { color: #0284c7; text-decoration: underline; font-weight: 600; word-break: break-all; }
+        .dark .md-link { color: #38bdf8; }
         .task-list-item { display: flex; align-items: flex-start; gap: 10px; padding: 6px 8px; border-radius: 8px; transition: background 0.15s; }
         .task-list-item:hover { background: rgba(0,128,105,0.06); }
         .task-checkbox { margin-top: 4px; cursor: pointer; width: 17px; height: 17px; accent-color: #008069; flex-shrink: 0; }
@@ -113,13 +115,14 @@
         ];
 
         const CRM_STATUSES = ['Lead (Nuovo)', 'In Trattativa', 'Attivo', 'Inattivo', 'VIP'];
+        const REACTION_EMOJIS = ['👍', '❤️', '🔥', '✅', '🎉', '🙏'];
 
         const QUICK_REPLIES = [
             "Benvenuto su FFchatgram! Sono qui per aiutarti a iniziare al meglio. 👋",
             "Ecco il link per la nostra prossima sessione di formazione:",
             "Ottimo lavoro! Continua così, i risultati arriveranno presto. 🚀",
             "Hai bisogno di una mano con la configurazione del sistema?",
-            "Per favore, controlla gli ultimi aggiornamenti nel portale."
+            "Per favore, controlla gli ultimi aggiornamenti nel portale Academy."
         ];
 
         const pendingInviteStore = {
@@ -189,7 +192,7 @@
             throw new Error('Errore ImgBB');
         }
 
-        // --- FORMATTAZIONE TESTO SICURA (CON FILTRO ANTI-XSS) ---
+        // --- FORMATTAZIONE TESTO SICURA (ANTI-XSS + GRASSETTO/CORSIVO + LINK CLICCABILI) ---
         function escapeHtml(str) {
             return String(str)
                 .replace(/&/g, '&amp;')
@@ -199,13 +202,22 @@
                 .replace(/'/g, '&#39;');
         }
 
-        function formatText(text) {
+        function formatText(text, enableLinks = true) {
             if (!text) return null;
             const lines = String(text).split('\n');
             return lines.map((line, i) => {
                 let safeLine = escapeHtml(line);
+                if (enableLinks) {
+                    safeLine = safeLine.replace(
+                        /((?:https?:\/\/|www\.)[^\s<]+)/gi,
+                        (match) => {
+                            const href = match.toLowerCase().startsWith('http') ? match : 'https://' + match;
+                            return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="md-link" onclick="event.stopPropagation()">${match}</a>`;
+                        }
+                    );
+                }
                 safeLine = safeLine.replace(/\*([^*]+)\*/g, '<span class="md-bold">$1</span>');
-                safeLine = safeLine.replace(/_([^_]+)_/g, '<span class="md-italic">$1</span>');
+                safeLine = safeLine.replace(/(^|\s)_([^_]+)_(?=\s|$|[.,!?;:])/g, '$1<span class="md-italic">$2</span>');
                 return (
                     <Fragment key={i}>
                         <span dangerouslySetInnerHTML={{ __html: safeLine }} />
@@ -329,7 +341,10 @@
                         const newChatRef = await fm.addDoc(fm.collection(window.db, "chats"), {
                             type: 'direct', members: [myUid, inviterUid],
                             memberData: { [myUid]: { name: myProfile?.name, photoURL: myProfile?.photoURL }, [inviterUid]: { name: inviterData.name, photoURL: inviterData.photoURL } },
-                            lastMessage: '👋 Chat avviata tramite link di invito!', updatedAt: fm.serverTimestamp()
+                            lastMessage: '👋 Chat avviata tramite link di invito!',
+                            lastSenderId: inviterUid,
+                            unreadBy: [myUid],
+                            updatedAt: fm.serverTimestamp()
                         });
                         targetChatId = newChatRef.id; showToast('Collegamento completato!');
                     }
@@ -487,37 +502,46 @@
             );
         }
 
-        // --- WORKSPACE (LAUNCHER CHAT O CRM) ---
+        // --- WORKSPACE (LAUNCHER CHAT / ACADEMY / CRM) ---
         function Workspace({ user, userData, setUserData, showToast, triggerInstall, isStandalone, darkMode, toggleDarkMode }) {
             const isAdmin = useMemo(() => checkIsAdmin(user, userData), [user, userData]);
-            const [appMode, setAppMode] = useState('chat');
+            const [appMode, setAppMode] = useState('chat'); // 'chat' | 'academy' | 'crm'
             const [isLauncherOpen, setIsLauncherOpen] = useState(false);
 
-            useEffect(() => { if (!isAdmin && appMode !== 'chat') setAppMode('chat'); }, [isAdmin, appMode]);
+            useEffect(() => { if (!isAdmin && appMode === 'crm') setAppMode('chat'); }, [isAdmin, appMode]);
 
             return (
                 <div className="h-full w-full relative overflow-hidden flex bg-[#f0f2f5] dark:bg-gray-900">
-                    {isLauncherOpen && isAdmin && (
+                    {isLauncherOpen && (
                         <div className="absolute inset-0 z-50 flex">
                             <div className="w-64 bg-white dark:bg-gray-800 shadow-2xl flex flex-col h-full z-50">
                                 <div className="bg-[#008069] p-4 text-white font-bold flex justify-between items-center">
-                                    <span>Workspace</span><button onClick={() => setIsLauncherOpen(false)}><i className="fa-solid fa-xmark text-lg"></i></button>
+                                    <span>Menu Applicazioni</span><button onClick={() => setIsLauncherOpen(false)}><i className="fa-solid fa-xmark text-lg"></i></button>
                                 </div>
                                 <div className="p-2 space-y-1">
-                                    <button onClick={() => { setAppMode('chat'); setIsLauncherOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition font-bold text-sm ${appMode==='chat' ? 'bg-[#008069]/10 text-[#008069] dark:text-[#00a884]' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                                    <button onClick={() => { setAppMode('chat'); setIsLauncherOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition font-bold text-sm cursor-pointer ${appMode==='chat' ? 'bg-[#008069]/10 text-[#008069] dark:text-[#00a884]' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
                                         <i className="fa-solid fa-comments text-lg w-6"></i> Chat Messaggi
                                     </button>
-                                    <button onClick={() => { setAppMode('crm'); setIsLauncherOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition font-bold text-sm ${appMode==='crm' ? 'bg-[#008069]/10 text-[#008069] dark:text-[#00a884]' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
-                                        <i className="fa-solid fa-layer-group text-lg w-6"></i> CRM & Pagine Notion
+                                    <button onClick={() => { setAppMode('academy'); setIsLauncherOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition font-bold text-sm cursor-pointer ${appMode==='academy' ? 'bg-[#008069]/10 text-[#008069] dark:text-[#00a884]' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                                        <i className="fa-solid fa-graduation-cap text-lg w-6"></i> Academy & Risorse
                                     </button>
+                                    {isAdmin && (
+                                        <button onClick={() => { setAppMode('crm'); setIsLauncherOpen(false); }} className={`w-full flex items-center gap-3 p-3 rounded-xl transition font-bold text-sm cursor-pointer ${appMode==='crm' ? 'bg-[#008069]/10 text-[#008069] dark:text-[#00a884]' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                                            <i className="fa-solid fa-layer-group text-lg w-6"></i> CRM & Pagine Notion
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex-1 bg-black/40 backdrop-blur-sm" onClick={() => setIsLauncherOpen(false)}></div>
                         </div>
                     )}
-                    {appMode === 'chat' ? (
+                    {appMode === 'chat' && (
                         <Dashboard user={user} userData={userData} setUserData={setUserData} showToast={showToast} triggerInstall={triggerInstall} isStandalone={isStandalone} darkMode={darkMode} toggleDarkMode={toggleDarkMode} isAdmin={isAdmin} onOpenLauncher={() => setIsLauncherOpen(true)} />
-                    ) : (
+                    )}
+                    {appMode === 'academy' && (
+                        <AcademyModule user={user} isAdmin={isAdmin} showToast={showToast} onOpenLauncher={() => setIsLauncherOpen(true)} />
+                    )}
+                    {appMode === 'crm' && isAdmin && (
                         <CRMModule user={user} isAdmin={isAdmin} showToast={showToast} onOpenLauncher={() => setIsLauncherOpen(true)} />
                     )}
                 </div>
@@ -538,7 +562,16 @@
             const myInviteUrl = useMemo(() => getInviteUrl(user.uid), [user.uid]);
             useEffect(() => { if (userData?.name) setEditName(userData.name); }, [userData]);
 
-            const selectChat = (chatId) => { setActiveChatId(chatId); if (chatId && !historyPushedRef.current) { try { window.history.pushState({ chatOpen: true }, ''); historyPushedRef.current = true; } catch (e) {} } };
+            const selectChat = (chatId) => {
+                setActiveChatId(chatId);
+                if (chatId) {
+                    const fm = window.firebaseMethods;
+                    fm.updateDoc(fm.doc(window.db, "chats", chatId), { unreadBy: fm.arrayRemove(user.uid) }).catch(() => {});
+                    if (!historyPushedRef.current) {
+                        try { window.history.pushState({ chatOpen: true }, ''); historyPushedRef.current = true; } catch (e) {}
+                    }
+                }
+            };
             const handleBackToChatList = () => { setActiveChatId(null); if (historyPushedRef.current) { historyPushedRef.current = false; try { window.history.back(); } catch (e) {} } };
 
             useEffect(() => {
@@ -567,12 +600,12 @@
             const startDirectChatWithUser = async (targetUser) => {
                 if (!targetUser || targetUser.uid === user.uid) return; const fm = window.firebaseMethods;
                 const existing = chats.find(c => c.type === 'direct' && c.members.includes(targetUser.uid)); if (existing) { selectChat(existing.id); setModal(null); return; }
-                const newChatRef = await fm.addDoc(fm.collection(window.db, "chats"), { type: 'direct', members: [user.uid, targetUser.uid], memberData: { [user.uid]: { name: userData?.name }, [targetUser.uid]: { name: targetUser.name } }, lastMessage: 'Nuova conversazione', updatedAt: fm.serverTimestamp() }); selectChat(newChatRef.id); setModal(null);
+                const newChatRef = await fm.addDoc(fm.collection(window.db, "chats"), { type: 'direct', members: [user.uid, targetUser.uid], memberData: { [user.uid]: { name: userData?.name }, [targetUser.uid]: { name: targetUser.name } }, lastMessage: 'Nuova conversazione', lastSenderId: user.uid, unreadBy: [], updatedAt: fm.serverTimestamp() }); selectChat(newChatRef.id); setModal(null);
             };
 
             const handleCreateGroup = async (e) => {
                 e.preventDefault(); if (!groupName.trim()) return showToast("Inserisci il nome", "error"); const fm = window.firebaseMethods; const members = Array.from(new Set([user.uid, ...selectedMembers])); const memberData = {}; members.forEach(uid => { memberData[uid] = { name: allUsers[uid]?.name || 'Affiliato', photoURL: allUsers[uid]?.photoURL || '' }; });
-                const ref = await fm.addDoc(fm.collection(window.db, "chats"), { type: 'group', name: groupName.trim(), members, memberData, lastMessage: '👥 Gruppo creato', updatedAt: fm.serverTimestamp() }); setGroupName(''); setSelectedMembers([]); setModal(null); selectChat(ref.id); showToast("Gruppo creato!");
+                const ref = await fm.addDoc(fm.collection(window.db, "chats"), { type: 'group', name: groupName.trim(), members, memberData, lastMessage: '👥 Gruppo creato', lastSenderId: user.uid, unreadBy: selectedMembers, updatedAt: fm.serverTimestamp() }); setGroupName(''); setSelectedMembers([]); setModal(null); selectChat(ref.id); showToast("Gruppo creato!");
             };
 
             const handleAddMembersToGroup = async () => {
@@ -583,7 +616,14 @@
             const handleSendBroadcast = async (e) => {
                 e.preventDefault(); if (!broadcastMsg.trim()) return; const fm = window.firebaseMethods; const directChats = chats.filter(c => c.type === 'direct'); if(directChats.length === 0) return showToast("Nessuna chat", "error");
                 showToast("Invio broadcast in corso...", "info");
-                try { await Promise.all(directChats.map(async (c) => { await fm.addDoc(fm.collection(window.db, "chats", c.id, "messages"), { type: 'text', text: broadcastMsg.trim(), imageUrl: '', senderId: user.uid, senderName: userData?.name || 'Amministratore', readBy: [], timestamp: fm.serverTimestamp() }); await fm.updateDoc(fm.doc(window.db, "chats", c.id), { lastMessage: '📢 ' + broadcastMsg.trim(), updatedAt: fm.serverTimestamp() }); })); setBroadcastMsg(''); setModal(null); showToast(`Broadcast inviato!`); } catch (err) { showToast("Errore invio", "error"); }
+                try {
+                    await Promise.all(directChats.map(async (c) => {
+                        const otherMembers = (c.members || []).filter(id => id !== user.uid);
+                        await fm.addDoc(fm.collection(window.db, "chats", c.id, "messages"), { type: 'text', text: broadcastMsg.trim(), imageUrl: '', senderId: user.uid, senderName: userData?.name || 'Amministratore', readBy: [], reactions: {}, timestamp: fm.serverTimestamp() });
+                        await fm.updateDoc(fm.doc(window.db, "chats", c.id), { lastMessage: '📢 ' + broadcastMsg.trim(), lastSenderId: user.uid, unreadBy: otherMembers, updatedAt: fm.serverTimestamp() });
+                    }));
+                    setBroadcastMsg(''); setModal(null); showToast(`Broadcast inviato!`);
+                } catch (err) { showToast("Errore invio", "error"); }
             };
 
             const handleSaveProfile = async (e) => { e.preventDefault(); if (!editName.trim()) return; const fm = window.firebaseMethods; try { await fm.updateProfile(window.auth.currentUser, { displayName: editName.trim() }); await fm.setDoc(fm.doc(window.db, "users", user.uid), { name: editName.trim(), updatedAt: fm.serverTimestamp() }, { merge: true }); setUserData(prev => ({ ...prev, name: editName.trim() })); showToast("Profilo aggiornato!"); } catch (err) { showToast("Errore salvataggio", "error"); } };
@@ -599,7 +639,7 @@
                     <div className={"w-full md:w-[390px] lg:w-[420px] h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0 " + (activeChat ? "hidden md:flex" : "flex")}>
                         <div className="bg-[#f0f2f5] dark:bg-gray-900 px-3 py-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                             <div className="flex items-center gap-2 cursor-pointer">
-                                {isAdmin && <button onClick={onOpenLauncher} title="Apri Workspace CRM" className="w-9 h-9 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 mr-1 transition"><i className="fa-solid fa-grip text-lg"></i></button>}
+                                <button onClick={onOpenLauncher} title="Menu Applicazioni (Academy / CRM)" className="w-9 h-9 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-[#008069] dark:text-[#00a884] mr-1 transition cursor-pointer"><i className="fa-solid fa-grip text-lg"></i></button>
                                 <div onClick={() => setModal('settings')} className="flex items-center gap-2"><Avatar name={userData?.name} photoURL={userData?.photoURL} /><div className="hidden sm:block"><div className="font-bold text-gray-800 dark:text-gray-100 text-sm truncate max-w-[110px]">{userData?.name || "Profilo"}</div></div></div>
                             </div>
                             <div className="flex gap-1 text-gray-600 dark:text-gray-300">
@@ -628,10 +668,24 @@
                                 const info = getChatInfo(chat); const typing = isSomeoneTyping(chat); const isSelected = chat.id === activeChatId;
                                 const timeStr = chat.updatedAt?.toDate ? chat.updatedAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
                                 const tagId = chat.tags?.[user.uid]; const tagObj = TAGS.find(t => t.id === tagId);
+                                const isUnread = Array.isArray(chat.unreadBy) && chat.unreadBy.includes(user.uid) && !isSelected;
+
                                 return (
                                     <div key={chat.id} onClick={() => selectChat(chat.id)} className={`px-4 py-3 flex gap-3.5 cursor-pointer ${isSelected ? 'bg-[#f0f2f5] dark:bg-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-750'}`}>
-                                        <div className="relative"><Avatar name={info.name} photoURL={info.photoURL} isGroup={info.isGroup} size="w-12 h-12" />{tagObj && <div className="absolute -bottom-1 -right-1 text-xs bg-white dark:bg-gray-800 rounded-full w-5 h-5 flex items-center justify-center shadow">{tagObj.icon}</div>}</div>
-                                        <div className="flex-1 min-w-0"><div className="flex justify-between mb-0.5"><span className="font-bold text-gray-900 dark:text-white text-sm truncate">{info.name}</span><span className="text-[11px] text-gray-400">{timeStr}</span></div>{typing ? <div className="text-xs text-[#00a884] font-bold animate-pulse">sta scrivendo...</div> : <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{formatText(chat.lastMessage) || "Inizia chat..."}</div>}</div>
+                                        <div className="relative">
+                                            <Avatar name={info.name} photoURL={info.photoURL} isGroup={info.isGroup} size="w-12 h-12" />
+                                            {tagObj && <div className="absolute -bottom-1 -right-1 text-xs bg-white dark:bg-gray-800 rounded-full w-5 h-5 flex items-center justify-center shadow">{tagObj.icon}</div>}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-center mb-0.5">
+                                                <span className={"text-sm truncate " + (isUnread ? "font-extrabold text-gray-900 dark:text-white" : "font-bold text-gray-900 dark:text-white")}>{info.name}</span>
+                                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                    {isUnread && <span className="bg-[#00a884] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm">● Nuovo</span>}
+                                                    <span className={"text-[11px] " + (isUnread ? "text-[#00a884] font-bold" : "text-gray-400")}>{timeStr}</span>
+                                                </div>
+                                            </div>
+                                            {typing ? <div className="text-xs text-[#00a884] font-bold animate-pulse">sta scrivendo...</div> : <div className={"text-xs truncate " + (isUnread ? "font-bold text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400")}>{formatText(chat.lastMessage, false) || "Inizia chat..."}</div>}
+                                        </div>
                                     </div>
                                 );
                             })}
@@ -645,7 +699,7 @@
                             <div className="flex-1 flex flex-col items-center justify-center border-l border-gray-200 dark:border-gray-700 p-6 text-center">
                                 <div className="w-24 h-24 rounded-full bg-[#008069]/10 dark:bg-[#008069]/30 flex items-center justify-center mb-4"><i className="fa-solid fa-shield-halved text-5xl text-[#008069]"></i></div>
                                 <h2 className="text-2xl font-bold text-gray-700 dark:text-gray-200">FFchatgram</h2>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Seleziona una chat a sinistra o apri la rubrica per iniziare.</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Seleziona una chat a sinistra, apri la rubrica oppure consulta l'<b>Academy</b> dal menu in alto a sinistra.</p>
                             </div>
                         )}
                     </div>
@@ -667,7 +721,7 @@
                         </div>
                     )}
                     {modal === 'broadcastModal' && isAdmin && (
-                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"><form onSubmit={handleSendBroadcast} className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md overflow-hidden"><div className="bg-[#008069] px-5 py-4 text-white flex justify-between"><h3 className="font-bold"><i className="fa-solid fa-bullhorn"></i> Messaggio Broadcast</h3><button type="button" onClick={() => setModal(null)}><i className="fa-solid fa-xmark"></i></button></div><div className="p-5 space-y-4"><p className="text-xs text-gray-600 dark:text-gray-300">Invia a tutti gli affiliati. Puoi usare *grassetto* e _corsivo_.</p><textarea required rows="4" placeholder="Scrivi il tuo annuncio..." value={broadcastMsg} onChange={e=>setBroadcastMsg(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 rounded-xl text-sm outline-none resize-none"></textarea><button type="submit" className="w-full bg-[#008069] text-white font-bold py-3 rounded-xl"><i className="fa-solid fa-paper-plane mr-2"></i> Invia a Tutti</button></div></form></div>
+                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"><form onSubmit={handleSendBroadcast} className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md overflow-hidden"><div className="bg-[#008069] px-5 py-4 text-white flex justify-between"><h3 className="font-bold"><i className="fa-solid fa-bullhorn"></i> Messaggio Broadcast</h3><button type="button" onClick={() => setModal(null)}><i className="fa-solid fa-xmark"></i></button></div><div className="p-5 space-y-4"><p className="text-xs text-gray-600 dark:text-gray-300">Invia a tutti gli affiliati. Puoi usare *grassetto*, _corsivo_ e link.</p><textarea required rows="4" placeholder="Scrivi il tuo annuncio..." value={broadcastMsg} onChange={e=>setBroadcastMsg(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 rounded-xl text-sm outline-none resize-none"></textarea><button type="submit" className="w-full bg-[#008069] text-white font-bold py-3 rounded-xl"><i className="fa-solid fa-paper-plane mr-2"></i> Invia a Tutti</button></div></form></div>
                     )}
                     {modal === 'inviteModal' && isAdmin && (
                         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md overflow-hidden"><div className="bg-[#008069] px-5 py-4 text-white flex justify-between"><h3 className="font-bold"><i className="fa-solid fa-share-nodes"></i> Invita</h3><button onClick={() => setModal(null)}><i className="fa-solid fa-xmark"></i></button></div><div className="p-5 space-y-4"><input type="text" readOnly value={myInviteUrl} onClick={(e)=>e.target.select()} className="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-xl text-xs font-mono" /><div className="space-y-2"><button onClick={()=>{copyTextSafe(myInviteUrl); showToast("Copiato!");}} className="w-full bg-[#008069] text-white font-bold text-xs py-3 rounded-xl"><i className="fa-solid fa-copy"></i> Copia Link</button><a href={"https://wa.me/?text=" + encodeURIComponent("Entra nella mia chat privata FFchatgram:\n" + myInviteUrl)} target="_blank" rel="noreferrer" className="w-full bg-[#25D366] text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2"><i className="fa-brands fa-whatsapp text-base"></i> WhatsApp</a></div></div></div></div>
@@ -689,21 +743,29 @@
             );
         }
 
-        // --- COMPONENTE STANZA CHAT ---
+        // --- COMPONENTE STANZA CHAT (CON REAZIONI RAPIDE E LINK CLICCABILI) ---
         function ChatRoom({ chat, chatInfo, user, userData, allUsers, isTyping, isAdmin, onBack, onOpenAddMembers, onOpenLightbox, showToast, setModal }) {
             const [allMessages, setAllMessages] = useState([]);
             const [text, setText] = useState(''); const [replyTo, setReplyTo] = useState(null);
             const [confirmDeleteId, setConfirmDeleteId] = useState(null); const [uploadingImg, setUploadingImg] = useState(false);
             const [showQuick, setShowQuick] = useState(false);
+            const [reactionPickerMsgId, setReactionPickerMsgId] = useState(null);
             const messagesEndRef = useRef(); const fileInputRef = useRef(); const initialLoadRef = useRef(true);
 
             useEffect(() => {
                 const fm = window.firebaseMethods;
+                // Segna la chat come letta all'apertura
+                fm.updateDoc(fm.doc(window.db, "chats", chat.id), { unreadBy: fm.arrayRemove(user.uid) }).catch(()=>{});
+
                 const unsub = fm.onSnapshot(fm.query(fm.collection(window.db, "chats", chat.id, "messages"), fm.orderBy("timestamp", "asc")), (snap) => {
                     setAllMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
                     snap.docChanges().forEach((c) => {
                         if (c.type === 'added' && c.doc.data().senderId !== user.uid) {
-                            const readBy = c.doc.data().readBy || []; if (!readBy.includes(user.uid)) fm.updateDoc(fm.doc(window.db, "chats", chat.id, "messages", c.doc.id), { readBy: fm.arrayUnion(user.uid) }).catch(()=>{});
+                            const readBy = c.doc.data().readBy || [];
+                            if (!readBy.includes(user.uid)) {
+                                fm.updateDoc(fm.doc(window.db, "chats", chat.id, "messages", c.doc.id), { readBy: fm.arrayUnion(user.uid) }).catch(()=>{});
+                            }
+                            fm.updateDoc(fm.doc(window.db, "chats", chat.id), { unreadBy: fm.arrayRemove(user.uid) }).catch(()=>{});
                             if (!initialLoadRef.current) playNotificationSound();
                         }
                     });
@@ -717,9 +779,34 @@
 
             const sendPayload = async (msgText, type = 'text', imageUrl = '') => {
                 const fm = window.firebaseMethods; const currentReply = replyTo; setText(''); setReplyTo(null); setShowQuick(false);
+                const otherMembers = (chat.members || []).filter(id => id !== user.uid);
                 fm.updateDoc(fm.doc(window.db, "chats", chat.id), { ['typing.' + user.uid]: 0 }).catch(()=>{});
-                await fm.addDoc(fm.collection(window.db, "chats", chat.id, "messages"), { type, text: msgText, imageUrl, senderId: user.uid, senderName: userData?.name || 'Affiliato', readBy: [], replyToData: currentReply ? { id: currentReply.id, senderName: currentReply.senderName || 'Affiliato', text: currentReply.text || 'Foto' } : null, timestamp: fm.serverTimestamp() });
-                await fm.updateDoc(fm.doc(window.db, "chats", chat.id), { lastMessage: type === 'image' ? '📷 Foto' : msgText, updatedAt: fm.serverTimestamp() });
+                await fm.addDoc(fm.collection(window.db, "chats", chat.id, "messages"), {
+                    type, text: msgText, imageUrl, senderId: user.uid, senderName: userData?.name || 'Affiliato',
+                    readBy: [], reactions: {},
+                    replyToData: currentReply ? { id: currentReply.id, senderName: currentReply.senderName || 'Affiliato', text: currentReply.text || 'Foto' } : null,
+                    timestamp: fm.serverTimestamp()
+                });
+                await fm.updateDoc(fm.doc(window.db, "chats", chat.id), {
+                    lastMessage: type === 'image' ? '📷 Foto' : msgText,
+                    lastSenderId: user.uid,
+                    unreadBy: otherMembers,
+                    updatedAt: fm.serverTimestamp()
+                });
+            };
+
+            const toggleReaction = async (msg, emoji) => {
+                const fm = window.firebaseMethods;
+                const currentReactions = msg.reactions || {};
+                const usersForEmoji = currentReactions[emoji] || [];
+                const hasReacted = usersForEmoji.includes(user.uid);
+                const msgRef = fm.doc(window.db, "chats", chat.id, "messages", msg.id);
+                try {
+                    await fm.updateDoc(msgRef, {
+                        [`reactions.${emoji}`]: hasReacted ? fm.arrayRemove(user.uid) : fm.arrayUnion(user.uid)
+                    });
+                } catch (e) {}
+                setReactionPickerMsgId(null);
             };
 
             const handlePinMessage = async (msg) => { await window.firebaseMethods.updateDoc(window.firebaseMethods.doc(window.db, "chats", chat.id), { pinnedMessage: { id: msg.id, text: msg.text || 'Foto', senderName: msg.senderName || 'Utente' } }); showToast("Fissato!"); };
@@ -729,7 +816,7 @@
             const handleDeleteMessage = async (msgId) => { try { await window.firebaseMethods.deleteDoc(window.firebaseMethods.doc(window.db, "chats", chat.id, "messages", msgId)); setConfirmDeleteId(null); } catch (err) {} };
 
             return (
-                <div className="flex flex-col h-full w-full relative overflow-hidden">
+                <div className="flex flex-col h-full w-full relative overflow-hidden" onClick={() => setReactionPickerMsgId(null)}>
                     <div className="bg-[#f0f2f5] dark:bg-gray-900 px-3 py-2.5 flex items-center justify-between border-b dark:border-gray-700 z-20 flex-shrink-0 sticky top-0">
                         <div className="flex items-center gap-2.5 min-w-0">
                             <button onClick={onBack} className="flex gap-1.5 bg-[#008069]/10 dark:bg-[#008069]/30 text-[#008069] dark:text-[#00a884] font-bold text-xs px-3 py-1.5 rounded-lg cursor-pointer"><i className="fa-solid fa-arrow-left text-sm"></i><span>Indietro</span></button>
@@ -751,24 +838,55 @@
                     {chat.pinnedMessage && (
                         <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur border-b dark:border-gray-700 px-4 py-2 flex justify-between items-center z-10 shadow-sm"><div className="flex items-center gap-2 min-w-0"><i className="fa-solid fa-thumbtack text-[#008069] dark:text-[#00a884]"></i><div className="truncate text-xs"><div className="font-bold text-[#008069] dark:text-[#00a884]">{chat.pinnedMessage.senderName}</div><div className="text-gray-600 dark:text-gray-300 truncate">{formatText(chat.pinnedMessage.text)}</div></div></div><button onClick={handleUnpinMessage} className="text-gray-500 p-2"><i className="fa-solid fa-xmark"></i></button></div>
                     )}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
-                        {allMessages.slice(-50).map(msg => {
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        {allMessages.slice(-60).map(msg => {
                             const isMe = msg.senderId === user.uid; const isRead = msg.readBy?.length > 0;
+                            const activeReactions = Object.entries(msg.reactions || {}).filter(([, arr]) => Array.isArray(arr) && arr.length > 0);
                             return (
-                                <div key={msg.id} className={"flex " + (isMe ? "justify-end" : "justify-start")}>
-                                    <div className={"max-w-[85%] sm:max-w-[70%] px-3 py-2 relative group " + (isMe ? "bubble-out" : "bubble-in")}>
+                                <div key={msg.id} className={"flex flex-col " + (isMe ? "items-end" : "items-start")}>
+                                    <div className={"max-w-[85%] sm:max-w-[70%] px-3 py-2 relative group " + (isMe ? "bubble-out" : "bubble-in")} onClick={e => e.stopPropagation()}>
                                         {!isMe && chatInfo.isGroup && <div className="text-xs font-bold text-[#008069] mb-0.5">{msg.senderName}</div>}
                                         {msg.replyToData && <div className="bg-black/5 dark:bg-white/5 border-l-4 border-[#008069] px-2.5 py-1.5 mb-1.5 rounded text-xs"><div className="font-bold text-[#008069]">{msg.replyToData.senderName}</div><div className="opacity-80 truncate">{msg.replyToData.text}</div></div>}
                                         {msg.type === 'image' && <div className="mb-1"><img src={msg.imageUrl} onClick={()=>onOpenLightbox(msg.imageUrl)} className="rounded-lg max-h-72 object-cover cursor-pointer" /></div>}
                                         {msg.text && <div className="text-[15px] break-words leading-snug">{formatText(msg.text)}</div>}
+
+                                        {/* POPUP SELETTORE REAZIONI */}
+                                        {reactionPickerMsgId === msg.id && (
+                                            <div className={"absolute -top-10 z-30 bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-full px-2.5 py-1 flex items-center gap-1.5 " + (isMe ? "right-0" : "left-0")}>
+                                                {REACTION_EMOJIS.map(em => (
+                                                    <button key={em} type="button" onClick={() => toggleReaction(msg, em)} className="text-base hover:scale-125 transition cursor-pointer">{em}</button>
+                                                ))}
+                                            </div>
+                                        )}
+
                                         <div className="flex items-center justify-end gap-2 mt-1">
-                                            <button onClick={()=>handlePinMessage(msg)} className="opacity-60 hover:opacity-100 text-[11px]"><i className="fa-solid fa-thumbtack"></i></button>
-                                            <button onClick={()=>setReplyTo(msg)} className="opacity-60 hover:opacity-100 text-[11px]"><i className="fa-solid fa-reply"></i></button>
-                                            {isMe && (confirmDeleteId===msg.id ? <span className="text-[10px] bg-red-100 dark:bg-red-900/50 px-1 rounded"><button onClick={()=>handleDeleteMessage(msg.id)} className="text-red-600 font-bold">Eli</button> | <button onClick={()=>setConfirmDeleteId(null)}>No</button></span> : <button onClick={()=>setConfirmDeleteId(msg.id)} className="opacity-60 text-[11px]"><i className="fa-solid fa-trash"></i></button>)}
+                                            <button type="button" onClick={() => setReactionPickerMsgId(prev => prev === msg.id ? null : msg.id)} title="Reagisci" className="opacity-60 hover:opacity-100 text-[11px] cursor-pointer"><i className="fa-regular fa-face-smile"></i></button>
+                                            <button type="button" onClick={()=>handlePinMessage(msg)} title="Fissa in alto" className="opacity-60 hover:opacity-100 text-[11px] cursor-pointer"><i className="fa-solid fa-thumbtack"></i></button>
+                                            <button type="button" onClick={()=>setReplyTo(msg)} title="Rispondi" className="opacity-60 hover:opacity-100 text-[11px] cursor-pointer"><i className="fa-solid fa-reply"></i></button>
+                                            {isMe && (confirmDeleteId===msg.id ? <span className="text-[10px] bg-red-100 dark:bg-red-900/50 px-1 rounded"><button onClick={()=>handleDeleteMessage(msg.id)} className="text-red-600 font-bold">Eli</button> | <button onClick={()=>setConfirmDeleteId(null)}>No</button></span> : <button onClick={()=>setConfirmDeleteId(msg.id)} className="opacity-60 text-[11px] cursor-pointer"><i className="fa-solid fa-trash"></i></button>)}
                                             <span className="text-[10px] opacity-60">{msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '...'}</span>
                                             {isMe && <i className={"fa-solid fa-check-double text-[11px] " + (isRead ? "text-[#34B7F1]" : "opacity-50")}></i>}
                                         </div>
                                     </div>
+
+                                    {/* PILLOLE REAZIONI ATTIVE */}
+                                    {activeReactions.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1 px-1">
+                                            {activeReactions.map(([emoji, uids]) => {
+                                                const mine = uids.includes(user.uid);
+                                                return (
+                                                    <button
+                                                        key={emoji}
+                                                        type="button"
+                                                        onClick={() => toggleReaction(msg, emoji)}
+                                                        className={`text-xs px-2 py-0.5 rounded-full border shadow-sm flex items-center gap-1 cursor-pointer transition ${mine ? 'bg-emerald-100 dark:bg-emerald-900/60 border-[#008069] text-[#008069] dark:text-emerald-300 font-bold' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200'}`}
+                                                    >
+                                                        <span>{emoji}</span><span>{uids.length}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
@@ -789,7 +907,156 @@
             );
         }
 
-        // --- MODULO CRM (NOTION STYLE CON ESPORTAZIONE COMPLETA E CHECKLIST) ---
+        // --- MODULO ACADEMY & RISORSE CONDIVISE (ADMIN SCRIVE, AFFILIATI LEGGONO) ---
+        function AcademyModule({ user, isAdmin, showToast, onOpenLauncher }) {
+            const [pages, setPages] = useState([]);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [activePageId, setActivePageId] = useState(null);
+            const [editMode, setEditMode] = useState(false);
+
+            useEffect(() => {
+                const fm = window.firebaseMethods;
+                const unsub = fm.onSnapshot(fm.collection(window.db, "academy_pages"), (snap) => {
+                    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    list.sort((a, b) => (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0));
+                    setPages(list);
+                });
+                return () => unsub();
+            }, []);
+
+            const activePage = pages.find(p => p.id === activePageId) || null;
+
+            const createAcademyPage = async () => {
+                if (!isAdmin) return;
+                const fm = window.firebaseMethods;
+                try {
+                    const ref = await fm.addDoc(fm.collection(window.db, "academy_pages"), {
+                        title: "Nuova Guida Academy",
+                        icon: "🎓",
+                        category: "Formazione",
+                        content: "Scrivi qui la guida per gli affiliati...\n[ ] Primo passo da completare",
+                        updatedAt: fm.serverTimestamp()
+                    });
+                    setActivePageId(ref.id);
+                    setEditMode(true);
+                } catch (e) { showToast("Errore creazione guida", "error"); }
+            };
+
+            const updateAcademyField = (field, value) => {
+                if (!isAdmin || !activePageId) return;
+                const fm = window.firebaseMethods;
+                fm.setDoc(fm.doc(window.db, "academy_pages", activePageId), {
+                    [field]: value,
+                    updatedAt: fm.serverTimestamp()
+                }, { merge: true }).catch(() => {});
+            };
+
+            const deleteAcademyPage = async () => {
+                if (!isAdmin || !activePageId) return;
+                if (window.confirm("Eliminare definitivamente questa guida dall'Academy?")) {
+                    await window.firebaseMethods.deleteDoc(window.firebaseMethods.doc(window.db, "academy_pages", activePageId));
+                    setActivePageId(null);
+                    showToast("Guida eliminata!");
+                }
+            };
+
+            const filteredPages = pages.filter(p => (p.title || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.category || '').toLowerCase().includes(searchTerm.toLowerCase()));
+
+            return (
+                <>
+                    <div className={"w-full md:w-[320px] lg:w-[350px] h-full bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0 " + (activePage ? "hidden md:flex" : "flex")}>
+                        <div className="bg-[#008069] px-4 py-4 flex items-center justify-between text-white flex-shrink-0">
+                            <div className="flex items-center gap-3">
+                                <button onClick={onOpenLauncher} className="w-9 h-9 rounded-full hover:bg-white/20 flex items-center justify-center transition cursor-pointer"><i className="fa-solid fa-grip text-lg"></i></button>
+                                <div className="font-bold text-lg">Academy & Risorse</div>
+                            </div>
+                        </div>
+
+                        <div className="p-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                            <div className="bg-gray-100 dark:bg-gray-900 rounded-xl flex items-center px-3.5 py-2 mb-2">
+                                <i className="fa-solid fa-magnifying-glass text-gray-400"></i>
+                                <input type="text" placeholder="Cerca guida o materiale..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="bg-transparent border-none outline-none w-full text-sm ml-2.5 text-gray-700 dark:text-gray-200" />
+                            </div>
+                            {isAdmin && (
+                                <button onClick={createAcademyPage} className="w-full bg-[#008069] hover:bg-[#017561] text-white text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-2 transition cursor-pointer">
+                                    <i className="fa-solid fa-plus"></i> Nuova Guida Academy
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+                            {filteredPages.map(p => (
+                                <div key={p.id} onClick={() => { setActivePageId(p.id); setEditMode(false); }} className={`p-3 rounded-xl flex items-center gap-3 cursor-pointer transition ${activePageId === p.id ? 'bg-[#008069]/10 dark:bg-[#008069]/30 text-[#008069] dark:text-[#00a884] font-bold' : 'bg-white dark:bg-gray-750 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 shadow-sm'}`}>
+                                    <span className="text-2xl">{p.icon || '🎓'}</span>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="text-sm font-bold truncate">{p.title || 'Senza Titolo'}</div>
+                                        <div className="text-[11px] text-gray-400 truncate">{p.category || 'Risorsa'}</div>
+                                    </div>
+                                </div>
+                            ))}
+                            {filteredPages.length === 0 && (
+                                <div className="text-center p-6 text-gray-400 text-xs">
+                                    Nessun materiale pubblicato nell'Academy.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className={"flex-1 h-full flex flex-col bg-white dark:bg-[#191919] overflow-y-auto " + (!activePage ? "hidden md:flex" : "flex w-full")}>
+                        {activePage ? (
+                            <div className="max-w-4xl w-full mx-auto pb-32">
+                                <div className="h-32 sm:h-44 w-full bg-gradient-to-r from-teal-500 to-[#008069] relative flex-shrink-0">
+                                    <button onClick={() => setActivePageId(null)} className="md:hidden absolute top-4 left-4 w-10 h-10 bg-black/20 text-white rounded-full flex items-center justify-center"><i className="fa-solid fa-arrow-left"></i></button>
+                                    {isAdmin && (
+                                        <div className="absolute top-4 right-4 flex gap-2">
+                                            <button onClick={() => setEditMode(prev => !prev)} className="px-3 py-1.5 bg-black/30 hover:bg-black/50 text-white rounded-full text-xs font-bold backdrop-blur cursor-pointer">
+                                                {editMode ? '👁️ Visualizza' : '✏️ Modifica Guida'}
+                                            </button>
+                                            <button onClick={deleteAcademyPage} className="w-9 h-9 bg-black/30 hover:bg-red-600 text-white rounded-full flex items-center justify-center backdrop-blur cursor-pointer">
+                                                <i className="fa-solid fa-trash text-xs"></i>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="px-6 sm:px-16 -mt-12 relative z-10">
+                                    {isAdmin && editMode ? (
+                                        <>
+                                            <input type="text" value={activePage.icon || '🎓'} onChange={e => updateAcademyField('icon', e.target.value)} className="w-20 h-20 text-5xl bg-white dark:bg-[#191919] rounded-2xl text-center outline-none mb-4" />
+                                            <input type="text" placeholder="Categoria (es. Script Vendita, Zoom, Onboarding)" value={activePage.category || ''} onChange={e => updateAcademyField('category', e.target.value)} className="block text-xs font-bold uppercase tracking-wider text-[#008069] bg-transparent outline-none mb-2 w-full" />
+                                            <input type="text" placeholder="Titolo della Guida" value={activePage.title || ''} onChange={e => updateAcademyField('title', e.target.value)} className="w-full text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white mb-6 bg-transparent outline-none" />
+                                            <textarea
+                                                placeholder="Scrivi il contenuto della guida (i link diventano cliccabili in automatico)..."
+                                                value={activePage.content || ''}
+                                                onChange={e => updateAcademyField('content', e.target.value)}
+                                                className="w-full min-h-[350px] bg-gray-50 dark:bg-gray-800/60 p-4 rounded-xl text-gray-800 dark:text-gray-200 outline-none text-base leading-relaxed"
+                                            ></textarea>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="w-20 h-20 text-5xl bg-white dark:bg-[#191919] rounded-2xl flex items-center justify-center shadow-sm mb-4">{activePage.icon || '🎓'}</div>
+                                            <div className="text-xs font-bold uppercase tracking-wider text-[#008069] dark:text-[#00a884] mb-1">{activePage.category || 'Risorsa Ufficiale'}</div>
+                                            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white mb-6">{activePage.title}</h1>
+                                            <div className="prose dark:prose-invert max-w-none text-gray-800 dark:text-gray-200 text-base leading-relaxed space-y-1 border-t border-gray-100 dark:border-gray-800 pt-6">
+                                                {formatText(activePage.content || '')}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
+                                <div className="w-24 h-24 bg-emerald-50 dark:bg-gray-800 rounded-3xl flex items-center justify-center mb-6"><i className="fa-solid fa-graduation-cap text-5xl text-[#008069]"></i></div>
+                                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Benvenuto nell'Academy</h2>
+                                <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-md text-sm">Seleziona una guida o risorsa formativa nella colonna a sinistra per consultare link ufficiali, script e materiali operativi.</p>
+                            </div>
+                        )}
+                    </div>
+                </>
+            );
+        }
+
+        // --- MODULO CRM PRIVATO ADMIN (CON PROMEMORIA FOLLOW-UP E DASHBOARD ALERT) ---
         function CRMModule({ user, isAdmin, showToast, onOpenLauncher }) {
             const [allUsers, setAllUsers] = useState({});
             const [allCrmProfiles, setAllCrmProfiles] = useState({});
@@ -801,7 +1068,6 @@
             const [viewChecklistMode, setViewChecklistMode] = useState(false);
             const historyPushedRef = useRef(false);
 
-            // Fetch Utenti
             useEffect(() => {
                 const fm = window.firebaseMethods;
                 const unsub = fm.onSnapshot(fm.collection(window.db, "users"), (snap) => {
@@ -810,7 +1076,6 @@
                 return () => unsub();
             }, []);
 
-            // Fetch tutti i profili CRM per avere statistiche ed Excel sempre completi
             useEffect(() => {
                 const fm = window.firebaseMethods;
                 const unsub = fm.onSnapshot(fm.collection(window.db, "crm_profiles"), (snap) => {
@@ -819,7 +1084,6 @@
                 return () => unsub();
             }, []);
 
-            // Fetch Pagine Personalizzate (Notion)
             useEffect(() => {
                 const fm = window.firebaseMethods;
                 const q = fm.query(fm.collection(window.db, "crm_pages"), fm.where("ownerId", "==", user.uid));
@@ -831,7 +1095,6 @@
                 return () => unsub();
             }, [user.uid]);
 
-            // Fetch Dati della Scheda Attiva
             useEffect(() => {
                 if (!activeSelection) { setActiveData(null); return; }
                 const fm = window.firebaseMethods;
@@ -839,7 +1102,7 @@
                 if (activeSelection.type === 'profile') {
                     unsub = fm.onSnapshot(fm.doc(window.db, "crm_profiles", activeSelection.id), (doc) => {
                         if (doc.exists()) setActiveData(doc.data());
-                        else setActiveData({ icon: '👤', status: 'Lead (Nuovo)', phone: '', campaign: '', notes: '' });
+                        else setActiveData({ icon: '👤', status: 'Lead (Nuovo)', phone: '', campaign: '', followUpDate: '', notes: '' });
                     });
                 } else if (activeSelection.type === 'page') {
                     unsub = fm.onSnapshot(fm.doc(window.db, "crm_pages", activeSelection.id), (doc) => {
@@ -849,7 +1112,6 @@
                 return () => { if (unsub) unsub(); };
             }, [activeSelection]);
 
-            // Esportazione Excel Completa (Anagrafica + Dati CRM)
             const handleExportExcel = () => {
                 const dataToExport = Object.values(allUsers)
                     .filter(u => u.uid && u.uid !== user.uid)
@@ -861,6 +1123,7 @@
                             "Stato CRM": crm.status || 'Lead (Nuovo)',
                             "Telefono": crm.phone || '',
                             "Campagna": crm.campaign || '',
+                            "Data Ricontatto (Follow-up)": crm.followUpDate || '',
                             "Note Operative": crm.notes || '',
                             "Data Registrazione": u.updatedAt?.toDate ? u.updatedAt.toDate().toLocaleDateString() : 'N/D',
                             "UID": u.uid
@@ -874,7 +1137,7 @@
 
                 const ws = XLSX.utils.json_to_sheet(dataToExport);
                 ws['!cols'] = [
-                    {wch: 24}, {wch: 28}, {wch: 18}, {wch: 18}, {wch: 22}, {wch: 45}, {wch: 18}, {wch: 32}
+                    {wch: 24}, {wch: 28}, {wch: 18}, {wch: 18}, {wch: 22}, {wch: 22}, {wch: 45}, {wch: 18}, {wch: 32}
                 ];
 
                 const wb = XLSX.utils.book_new();
@@ -972,6 +1235,13 @@
                 return diff <= 7;
             }).length;
 
+            // Calcolo Follow-up in scadenza oggi o arretrati
+            const todayStr = new Date().toISOString().split('T')[0];
+            const dueFollowUps = affiliates.filter(u => {
+                const fDate = allCrmProfiles[u.uid]?.followUpDate;
+                return fDate && fDate <= todayStr;
+            });
+
             const filteredAffiliates = affiliates.filter(u => (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (u.email || '').toLowerCase().includes(searchTerm.toLowerCase()));
             const filteredPages = customPages.filter(p => (p.title || 'Senza Titolo').toLowerCase().includes(searchTerm.toLowerCase()));
             const currentNoteField = activeSelection?.type === 'page' ? 'content' : 'notes';
@@ -983,7 +1253,7 @@
                         <div className="bg-[#008069] px-4 py-4 flex items-center justify-between text-white flex-shrink-0">
                             <div className="flex items-center gap-3">
                                 <button onClick={onOpenLauncher} className="w-9 h-9 rounded-full hover:bg-white/20 flex items-center justify-center transition cursor-pointer"><i className="fa-solid fa-grip text-lg"></i></button>
-                                <div className="font-bold text-lg cursor-pointer" onClick={() => setActiveSelection(null)}>Workspace</div>
+                                <div className="font-bold text-lg cursor-pointer" onClick={() => setActiveSelection(null)}>Workspace CRM</div>
                             </div>
                             <button onClick={handleExportExcel} title="Esporta CRM Completo in Excel" className="w-9 h-9 rounded-full hover:bg-white/20 flex items-center justify-center transition cursor-pointer">
                                 <i className="fa-solid fa-file-excel text-lg"></i>
@@ -1018,13 +1288,17 @@
                                 <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-1">👥 Schede Affiliati ({filteredAffiliates.length})</div>
                                 <div className="space-y-1">
                                     {filteredAffiliates.map(u => {
-                                        const crmStatus = allCrmProfiles[u.uid]?.status;
+                                        const crm = allCrmProfiles[u.uid] || {};
+                                        const isDue = crm.followUpDate && crm.followUpDate <= todayStr;
                                         return (
                                             <div key={u.uid} onClick={() => selectItem('profile', u.uid)} className={`p-2 rounded-lg flex items-center gap-3 cursor-pointer transition ${activeSelection?.id === u.uid ? 'bg-white dark:bg-gray-700 shadow-sm border border-gray-200 dark:border-gray-600' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                                                 <Avatar name={u.name} photoURL={u.photoURL} size="w-8 h-8" />
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="font-bold text-sm text-gray-900 dark:text-white truncate">{u.name}</div>
-                                                    <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{crmStatus ? `● ${crmStatus}` : u.email}</div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="font-bold text-sm text-gray-900 dark:text-white truncate">{u.name}</span>
+                                                        {isDue && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold" title="Da ricontattare">🔔</span>}
+                                                    </div>
+                                                    <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{crm.status ? `● ${crm.status}` : u.email}</div>
                                                 </div>
                                             </div>
                                         );
@@ -1072,18 +1346,27 @@
                                     {activeSelection.type === 'profile' && (
                                         <div className="space-y-3 mb-10 border-b border-gray-200 dark:border-gray-800 pb-8">
                                             <div className="flex items-center gap-6">
-                                                <div className="w-32 text-sm text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-2"><i className="fa-solid fa-chart-pie w-4"></i> Stato CRM</div>
+                                                <div className="w-36 text-sm text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-2"><i className="fa-solid fa-chart-pie w-4"></i> Stato CRM</div>
                                                 <select value={activeData.status || 'Lead (Nuovo)'} onChange={e => updateField('status', e.target.value)} className="flex-1 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 p-1.5 rounded outline-none text-gray-900 dark:text-white font-medium cursor-pointer transition">
                                                     {CRM_STATUSES.map(s => <option key={s} value={s} className="dark:bg-gray-800">{s}</option>)}
                                                 </select>
                                             </div>
                                             <div className="flex items-center gap-6">
-                                                <div className="w-32 text-sm text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-2"><i className="fa-solid fa-phone w-4"></i> Telefono</div>
+                                                <div className="w-36 text-sm text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-2"><i className="fa-solid fa-phone w-4"></i> Telefono</div>
                                                 <input type="text" placeholder="Aggiungi telefono..." value={activeData.phone || ''} onChange={e => updateField('phone', e.target.value)} className="flex-1 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 p-1.5 rounded outline-none text-gray-900 dark:text-white transition" />
                                             </div>
                                             <div className="flex items-center gap-6">
-                                                <div className="w-32 text-sm text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-2"><i className="fa-solid fa-bullseye w-4"></i> Campagna</div>
+                                                <div className="w-36 text-sm text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-2"><i className="fa-solid fa-bullseye w-4"></i> Campagna</div>
                                                 <input type="text" placeholder="Es. Google Ads..." value={activeData.campaign || ''} onChange={e => updateField('campaign', e.target.value)} className="flex-1 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 p-1.5 rounded outline-none text-gray-900 dark:text-white transition" />
+                                            </div>
+                                            <div className="flex items-center gap-6">
+                                                <div className="w-36 text-sm text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-2"><i className="fa-solid fa-bell w-4 text-amber-500"></i> Data Ricontatto</div>
+                                                <div className="flex items-center gap-2 flex-1">
+                                                    <input type="date" value={activeData.followUpDate || ''} onChange={e => updateField('followUpDate', e.target.value)} className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 p-1.5 rounded outline-none text-gray-900 dark:text-white text-sm cursor-pointer transition" />
+                                                    {activeData.followUpDate && (
+                                                        <button type="button" onClick={() => updateField('followUpDate', '')} className="text-xs text-gray-400 hover:text-red-500 px-2 py-1">Rimuovi</button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -1137,20 +1420,43 @@
                             </div>
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
-                                <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-3xl flex items-center justify-center mb-6"><i className="fa-solid fa-layer-group text-5xl text-gray-300 dark:text-gray-600"></i></div>
-                                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Dashboard Generale</h2>
-                                <p className="text-gray-500 dark:text-gray-400 mt-2 mb-8">Benvenuto nel tuo Workspace. Ecco la situazione in tempo reale:</p>
+                                <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-3xl flex items-center justify-center mb-4"><i className="fa-solid fa-layer-group text-4xl text-gray-300 dark:text-gray-600"></i></div>
+                                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Dashboard Generale CRM</h2>
+                                <p className="text-gray-500 dark:text-gray-400 mt-1 mb-6 text-sm">Panoramica in tempo reale della tua rete affiliati:</p>
                                 
-                                <div className="grid grid-cols-2 gap-4 w-full max-w-md mb-6">
+                                <div className="grid grid-cols-3 gap-3 w-full max-w-lg mb-6">
                                     <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 text-center">
-                                        <div className="text-3xl font-extrabold text-[#008069] dark:text-[#00a884] mb-1">{totalAffiliates}</div>
-                                        <div className="text-xs font-bold text-emerald-700 dark:text-emerald-500 uppercase tracking-wider">Affiliati Totali</div>
+                                        <div className="text-2xl sm:text-3xl font-extrabold text-[#008069] dark:text-[#00a884] mb-1">{totalAffiliates}</div>
+                                        <div className="text-[11px] font-bold text-emerald-700 dark:text-emerald-500 uppercase">Affiliati Totali</div>
                                     </div>
                                     <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/30 text-center">
-                                        <div className="text-3xl font-extrabold text-blue-600 dark:text-blue-400 mb-1">{newThisWeek}</div>
-                                        <div className="text-xs font-bold text-blue-700 dark:text-blue-500 uppercase tracking-wider">Nuovi (Ultimi 7 gg)</div>
+                                        <div className="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 mb-1">{newThisWeek}</div>
+                                        <div className="text-[11px] font-bold text-blue-700 dark:text-blue-500 uppercase">Nuovi (7 gg)</div>
+                                    </div>
+                                    <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-2xl border border-amber-100 dark:border-amber-900/30 text-center">
+                                        <div className="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 mb-1">{dueFollowUps.length}</div>
+                                        <div className="text-[11px] font-bold text-amber-700 dark:text-amber-500 uppercase">Follow-up Oggi</div>
                                     </div>
                                 </div>
+
+                                {dueFollowUps.length > 0 && (
+                                    <div className="w-full max-w-lg bg-amber-50/70 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800/40 rounded-2xl p-4 mb-6 text-left">
+                                        <div className="text-xs font-extrabold uppercase text-amber-800 dark:text-amber-400 mb-2 flex items-center gap-1.5">
+                                            <i className="fa-solid fa-bell"></i> Affiliati da Ricontattare Oggi (o Scaduti)
+                                        </div>
+                                        <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                                            {dueFollowUps.map(u => (
+                                                <div key={u.uid} onClick={() => selectItem('profile', u.uid)} className="p-2 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-between cursor-pointer hover:shadow-sm transition">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <Avatar name={u.name} photoURL={u.photoURL} size="w-7 h-7" textSize="text-xs" />
+                                                        <span className="text-xs font-bold text-gray-800 dark:text-white">{u.name}</span>
+                                                    </div>
+                                                    <span className="text-[11px] font-mono text-amber-700 dark:text-amber-400 font-semibold">{allCrmProfiles[u.uid]?.followUpDate}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <button onClick={handleExportExcel} className="bg-[#008069] hover:bg-[#017561] text-white text-xs font-bold px-5 py-3 rounded-xl shadow flex items-center gap-2 transition cursor-pointer">
                                     <i className="fa-solid fa-file-excel"></i> Scarica Report Completo CRM (.xlsx)
