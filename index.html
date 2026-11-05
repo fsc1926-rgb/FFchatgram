@@ -40,7 +40,6 @@
             getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, 
             serverTimestamp, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, arrayUnion, arrayRemove, deleteField 
         } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-        // Import Storage per audio/file
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
         try {
@@ -211,7 +210,6 @@
             return lines.map((line, i) => {
                 let safeLine = escapeHtml(line);
                 
-                // Highlight search term
                 if (searchTerm && searchTerm.trim()) {
                      const regex = new RegExp(`(${escapeHtml(searchTerm.trim())})`, 'gi');
                      safeLine = safeLine.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800 dark:text-white">$1</mark>');
@@ -274,7 +272,7 @@
             return (
                 <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden" onClick={e => e.stopPropagation()}>
-                        <div className="bg-[#008069] px-5 py-4 text-white flex justify-between"><h3 className="font-bold flex items-center gap-2"><i className="fa-solid fa-mobile-screen-button"></i> Installa App</h3><button onClick={onClose}><i className="fa-solid fa-xmark text-lg"></i></button></div>
+                        <div className="bg-[#008069] px-5 py-4 text-white flex justify-between"><h3 className="font-bold flex items-center gap-2"><i className="fa-solid fa-mobile-screen-button"></i> Installa App</h3><button onClick={onClose} className="cursor-pointer"><i className="fa-solid fa-xmark text-lg"></i></button></div>
                         <div className="p-5 space-y-4 text-sm text-gray-700 dark:text-gray-200">
                             {isInApp && <div className="bg-amber-50 dark:bg-amber-900/30 p-3.5 rounded-xl text-amber-900 dark:text-amber-200 text-xs"><b>Passo Preliminare:</b> Tocca i 3 puntini ⋮ e scegli "Apri nel browser".</div>}
                             {isIOS ? (
@@ -288,7 +286,7 @@
                                     <div className="flex gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-xl"><span className="w-6 h-6 rounded-full bg-[#008069] text-white flex items-center justify-center text-xs">2</span><div>Seleziona <b>"Installa app"</b> o <b>"Aggiungi a schermata Home"</b>.</div></div>
                                 </div>
                             )}
-                            <button onClick={onClose} className="w-full bg-[#008069] text-white font-bold py-3 rounded-xl">Chiudi</button>
+                            <button onClick={onClose} className="w-full bg-[#008069] text-white font-bold py-3 rounded-xl cursor-pointer">Chiudi</button>
                         </div>
                     </div>
                 </div>
@@ -477,9 +475,9 @@
                         </div>
                         <div className="p-6">
                             <div className="flex rounded-xl bg-gray-100 dark:bg-gray-700 p-1 mb-5">
-                                <button type="button" onClick={() => {setMode('login'); setErrorMsg('');}} className={`flex-1 py-2 text-xs font-bold rounded-lg ${mode==='login'?'bg-white dark:bg-gray-600 text-[#008069] dark:text-white shadow':'text-gray-500 dark:text-gray-300'}`}>Accedi</button>
-                                <button type="button" onClick={() => {setMode('register'); setErrorMsg('');}} className={`flex-1 py-2 text-xs font-bold rounded-lg ${mode==='register'?'bg-white dark:bg-gray-600 text-[#008069] dark:text-white shadow':'text-gray-500 dark:text-gray-300'}`}>Nuovo Affiliato</button>
-                                <button type="button" onClick={() => {setMode('reset'); setErrorMsg('');}} className={`flex-1 py-2 text-xs font-bold rounded-lg ${mode==='reset'?'bg-white dark:bg-gray-600 text-[#008069] dark:text-white shadow':'text-gray-500 dark:text-gray-300'}`}>Recupera</button>
+                                <button type="button" onClick={() => {setMode('login'); setErrorMsg('');}} className={`flex-1 py-2 text-xs font-bold rounded-lg cursor-pointer ${mode==='login'?'bg-white dark:bg-gray-600 text-[#008069] dark:text-white shadow':'text-gray-500 dark:text-gray-300'}`}>Accedi</button>
+                                <button type="button" onClick={() => {setMode('register'); setErrorMsg('');}} className={`flex-1 py-2 text-xs font-bold rounded-lg cursor-pointer ${mode==='register'?'bg-white dark:bg-gray-600 text-[#008069] dark:text-white shadow':'text-gray-500 dark:text-gray-300'}`}>Nuovo Affiliato</button>
+                                <button type="button" onClick={() => {setMode('reset'); setErrorMsg('');}} className={`flex-1 py-2 text-xs font-bold rounded-lg cursor-pointer ${mode==='reset'?'bg-white dark:bg-gray-600 text-[#008069] dark:text-white shadow':'text-gray-500 dark:text-gray-300'}`}>Recupera</button>
                             </div>
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 {mode === 'register' && <input type="text" required placeholder="Tuo Nome (visibile in chat)" value={name} onChange={e=>setName(e.target.value)} className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 rounded-xl text-sm outline-none focus:border-[#008069]" />}
@@ -515,7 +513,7 @@
 
         function Workspace({ user, userData, setUserData, showToast, triggerInstall, isStandalone, darkMode, toggleDarkMode }) {
             const isAdmin = useMemo(() => checkIsAdmin(user, userData), [user, userData]);
-            const [appMode, setAppMode] = useState('chat'); // 'chat' | 'academy' | 'crm'
+            const [appMode, setAppMode] = useState('chat');
             const [isLauncherOpen, setIsLauncherOpen] = useState(false);
 
             useEffect(() => { if (!isAdmin && appMode === 'crm') setAppMode('chat'); }, [isAdmin, appMode]);
@@ -664,7 +662,6 @@
                             <button onClick={() => setModal('newChat')} className={`bg-white dark:bg-gray-700 text-[#008069] dark:text-[#00a884] border border-[#008069]/30 text-xs font-bold py-2 px-3 rounded-lg cursor-pointer ${isAdmin ? 'flex-1' : 'w-full'}`}><i className="fa-solid fa-address-book"></i> Rubrica ({otherAffiliates.length})</button>
                         </div>
                         
-                        {/* SEARCH CHAT */}
                         <div className="p-2.5 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
                             <div className="bg-[#f0f2f5] dark:bg-gray-900 rounded-xl flex items-center px-3.5 py-2">
                                 <i className="fa-solid fa-magnifying-glass text-gray-400"></i>
@@ -721,7 +718,6 @@
                         )}
                     </div>
 
-                    {/* MODALS */}
                     {modal === 'settings' && (
                         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
                             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
@@ -741,8 +737,7 @@
                         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"><form onSubmit={handleSendBroadcast} className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md overflow-hidden"><div className="bg-[#008069] px-5 py-4 text-white flex justify-between"><h3 className="font-bold"><i className="fa-solid fa-bullhorn"></i> Messaggio Broadcast</h3><button type="button" onClick={() => setModal(null)} className="cursor-pointer"><i className="fa-solid fa-xmark"></i></button></div><div className="p-5 space-y-4"><p className="text-xs text-gray-600 dark:text-gray-300">Invia a tutti gli affiliati. Puoi usare *grassetto*, _corsivo_ e link.</p><textarea required rows="4" placeholder="Scrivi il tuo annuncio..." value={broadcastMsg} onChange={e=>setBroadcastMsg(e.target.value)} className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 rounded-xl text-sm outline-none resize-none"></textarea><button type="submit" className="w-full bg-[#008069] text-white font-bold py-3 rounded-xl cursor-pointer"><i className="fa-solid fa-paper-plane mr-2"></i> Invia a Tutti</button></div></form></div>
                     )}
                     {modal === 'inviteModal' && isAdmin && (
-                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md overflow-hidden"><div className="bg-[#008069] px-5 py-4 text-white flex justify-between"><h3 className="font-bold"><i className="fa-solid fa-share-nodes"></i> Invita</h3><button onClick={() => setModal(null)} className="cursor-pointer"><i className="fa-solid fa-xmark"></i></button></div><div className="p-5 space-y-4"><input type="text" readOnly value={myInviteUrl} onClick={(e)=>e.target.select()} className="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-xl text-xs font-mono outline-none" /><div className="space-y-2"><button onClick={()=>{copyTextSafe(myInviteUrl); showToast("Copiato!");}} className="w-full bg-[#008069] text-white font-bold text-xs py-3 rounded-xl cursor-pointer"><i className="fa-solid fa-copy"></i> Copia Link</button><a href={"https://wa.me/?text=" + encodeURIComponent("Entra nella mia chat privata FFchatgram:
-" + myInviteUrl)} target="_blank" rel="noreferrer" className="w-full bg-[#25D366] text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer"><i className="fa-brands fa-whatsapp text-base"></i> WhatsApp</a></div></div></div></div>
+                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md overflow-hidden"><div className="bg-[#008069] px-5 py-4 text-white flex justify-between"><h3 className="font-bold"><i className="fa-solid fa-share-nodes"></i> Invita</h3><button onClick={() => setModal(null)} className="cursor-pointer"><i className="fa-solid fa-xmark"></i></button></div><div className="p-5 space-y-4"><input type="text" readOnly value={myInviteUrl} onClick={(e)=>e.target.select()} className="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-xl text-xs font-mono outline-none" /><div className="space-y-2"><button onClick={()=>{copyTextSafe(myInviteUrl); showToast("Copiato!");}} className="w-full bg-[#008069] text-white font-bold text-xs py-3 rounded-xl cursor-pointer"><i className="fa-solid fa-copy"></i> Copia Link</button><a href={"https://wa.me/?text=" + encodeURIComponent("Entra nella mia chat privata FFchatgram:\n" + myInviteUrl)} target="_blank" rel="noreferrer" className="w-full bg-[#25D366] text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer"><i className="fa-brands fa-whatsapp text-base"></i> WhatsApp</a></div></div></div></div>
                     )}
                     {modal === 'newChat' && (
                         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"><div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md flex flex-col max-h-[85vh]"><div className="bg-[#008069] px-5 py-4 text-white flex justify-between"><h3 className="font-bold">Rubrica</h3><button onClick={() => setModal(null)} className="cursor-pointer"><i className="fa-solid fa-xmark"></i></button></div><div className="p-4 border-b dark:border-gray-700"><input type="text" placeholder="Cerca affiliato..." value={contactEmailSearch} onChange={e=>setContactEmailSearch(e.target.value)} className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-xl text-sm outline-none" /></div><div className="flex-1 overflow-y-auto p-2">{otherAffiliates.filter(u=>(u.name||'').toLowerCase().includes(contactEmailSearch.toLowerCase())).map(u=>(<div key={u.uid} onClick={()=>startDirectChatWithUser(u)} className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl flex items-center justify-between cursor-pointer"><div className="flex gap-3"><Avatar name={u.name} photoURL={u.photoURL} /><div><div className="font-bold text-sm dark:text-white">{u.name}</div><div className="text-[11px] text-emerald-600">● Verificato</div></div></div></div>))}</div></div></div>
@@ -856,7 +851,7 @@
                 try {
                     const fm = window.firebaseMethods;
                     const storageRef = fm.ref(window.storage, `chat_docs/${chat.id}/${Date.now()}_${file.name}`);
-                    await fm.uploadBytesResumable(storageRef, file);
+                    const uploadTask = await fm.uploadBytesResumable(storageRef, file);
                     const url = await fm.getDownloadURL(storageRef);
                     await sendPayload('', 'file', { url, name: file.name });
                     showToast("Documento inviato!");
@@ -1016,7 +1011,7 @@
                             </div>
                         ) : (
                             <>
-                                {isAdmin && <button onClick={()=>setShowQuick(!showQuick)} className="w-9 h-9 rounded-full text-amber-500 hover:bg-gray-200 dark:hover:bg-gray-800 cursor-pointer"><i className="fa-solid fa-bolt text-lg"></i></button>}
+                                {isAdmin && <button onClick={()=>setShowQuick(!showQuick)} className="w-9 h-9 rounded-full text-amber-500 hover:bg-gray-200 dark:bg-gray-800 cursor-pointer"><i className="fa-solid fa-bolt text-lg"></i></button>}
                                 <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImagePick} className="hidden" />
                                 <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.zip" ref={docInputRef} onChange={handleFilePick} className="hidden" />
                                 
@@ -1139,6 +1134,11 @@
                                     </div>
                                 </div>
                             ))}
+                            {filteredPages.length === 0 && (
+                                <div className="text-center p-6 text-gray-400 text-xs">
+                                    Nessun materiale pubblicato nell'Academy.
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -1176,6 +1176,7 @@
                                                 {formatText(activePage.content || '')}
                                             </div>
                                             
+                                            {/* ANALYTICS VISUALIZZAZIONI (SOLO ADMIN) */}
                                             {isAdmin && activePage.views && activePage.views.length > 0 && (
                                                 <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30 p-4 rounded-xl">
                                                     <div className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider mb-3 flex items-center gap-2"><i className="fa-solid fa-eye"></i> Visto da {activePage.views.length} affiliati:</div>
@@ -1205,13 +1206,14 @@
             );
         }
 
+        // --- MODULO CRM PRIVATO ADMIN ---
         function CRMModule({ user, isAdmin, showToast, onOpenLauncher }) {
             const [allUsers, setAllUsers] = useState({});
             const [allCrmProfiles, setAllCrmProfiles] = useState({});
             const [customPages, setCustomPages] = useState([]);
             const [searchTerm, setSearchTerm] = useState('');
             
-            const [activeSelection, setActiveSelection] = useState(null);
+            const [activeSelection, setActiveSelection] = useState(null); // { type: 'profile' | 'page', id: string }
             const [activeData, setActiveData] = useState(null);
             const [viewChecklistMode, setViewChecklistMode] = useState(false);
             const historyPushedRef = useRef(false);
@@ -1325,17 +1327,14 @@
                 if (!activeSelection || !activeData) return;
                 const fieldName = activeSelection.type === 'page' ? 'content' : 'notes';
                 const currentText = activeData[fieldName] || '';
-                const prefix = currentText && !currentText.endsWith('
-') ? '
-' : '';
+                const prefix = currentText && !currentText.endsWith('\n') ? '\n' : '';
                 const updated = currentText + prefix + '[ ] Nuova attività ';
                 updateField(fieldName, updated); setActiveData({ ...activeData, [fieldName]: updated });
             };
 
             const renderInteractiveChecklist = (text, fieldName) => {
                 if (!text || !text.trim()) return <div className="text-gray-400 italic text-sm py-4">Nessuna nota presente. Passa a "Modifica Testo" per scrivere.</div>;
-                const lines = text.split('
-');
+                const lines = text.split('\n');
                 return lines.map((line, idx) => {
                     const match = line.match(/^(\[(x|X| )?\])\s*(.*)$/);
                     if (match) {
@@ -1343,8 +1342,7 @@
                         const restOfLine = match[3];
                         const toggleCheck = () => {
                             const newLines = [...lines]; newLines[idx] = (isChecked ? '[ ] ' : '[x] ') + restOfLine;
-                            const newText = newLines.join('
-'); updateField(fieldName, newText);
+                            const newText = newLines.join('\n'); updateField(fieldName, newText);
                             if (activeData) setActiveData({ ...activeData, [fieldName]: newText });
                         };
                         return (
